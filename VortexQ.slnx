@@ -1,3 +1,7 @@
 <Solution>
-  <Project Path="VortexQ.csproj" />
+  <Project Path="LagrangeV2/Lagrange.Core/Lagrange.Core.csproj" />
+  <Project Path="LagrangeV2/Lagrange.Milky/Lagrange.Milky.csproj" />
+  <Project Path="LagrangeV2/Lagrange.Proto.Generator/Lagrange.Proto.Generator.csproj" />
+  <Project Path="LagrangeV2/Lagrange.Proto/Lagrange.Proto.csproj" />
+  <Project Path="Vortex.Bot/Vortex.Bot.csproj" />
 </Solution>
