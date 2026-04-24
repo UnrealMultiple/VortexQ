@@ -1,5 +1,5 @@
+using Vortex.Bot.Core.Service;
 using Vortex.Bot.Models;
-using Vortex.Bot.Services;
 using Vortex.Protocol.Interfaces;
 
 namespace Vortex.Bot.Processing;
@@ -10,7 +10,7 @@ public abstract class RoutedRequestHandlerBase<TRequest, TResponse>
 {
     public VortexContext? Context { get; set; }
 
-    public VortexServer? Server { get; set; }
+    public VortexSocketService? Server { get; set; }
 
     public abstract TResponse Handle(TRequest request, PacketRouteContext context);
 

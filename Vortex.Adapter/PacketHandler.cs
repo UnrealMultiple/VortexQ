@@ -4,10 +4,6 @@ using Vortex.Protocol.Interfaces;
 
 namespace Vortex.Adapter;
 
-/// <summary>
-/// 数据包处理器
-/// 处理来自 Vortex 服务器的请求
-/// </summary>
 public class PacketHandler
 {
     private readonly VortexClient _client;

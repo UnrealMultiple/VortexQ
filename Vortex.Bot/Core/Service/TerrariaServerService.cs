@@ -4,24 +4,24 @@ using Microsoft.Extensions.Logging;
 using Vortex.Bot.Configuration;
 using Vortex.Protocol.Packets;
 
-namespace Vortex.Bot.Services;
+namespace Vortex.Bot.Core.Service;
 
-public class TerrariaServerManager
+public class TerrariaServerService
 {
-    private readonly ILogger<TerrariaServerManager> _logger;
-    private readonly VortexServer _vortexServer;
+    private readonly ILogger<TerrariaServerService> _logger;
+    private readonly VortexSocketService _vortexServer;
     private readonly ConcurrentDictionary<string, TerrariaServer> _servers = new();
     private readonly ConcurrentDictionary<(long UserId, long GroupId), string> _userServerSelections = new();
 
-    public TerrariaServerManager(
-        ILogger<TerrariaServerManager> logger,
+    public TerrariaServerService(
+        ILogger<TerrariaServerService> logger,
         IConfiguration configuration,
-        VortexServer vortexServer)
+        VortexSocketService vortexServer)
     {
         _logger = logger;
         _vortexServer = vortexServer;
 
-        var serversConfig = configuration.GetSection("TerrariaServers").Get<GameServerList>();
+        var serversConfig = configuration.GetSection("TerrariaServers").Get<TerrariaServerCollection>();
         if (serversConfig?.Servers != null)
         {
             foreach (var config in serversConfig.Servers)
@@ -188,10 +188,10 @@ public class TerrariaServer
     private readonly ILogger _logger;
     private Guid? _connectedClientId;
 
-    public GameServerEntry Config { get; }
-    public VortexServer VortexServer { get; }
+    public TerrariaServerEnity Config { get; }
+    public VortexSocketService VortexServer { get; }
 
-    public TerrariaServer(GameServerEntry config, VortexServer vortexServer, ILogger logger)
+    public TerrariaServer(TerrariaServerEnity config, VortexSocketService vortexServer, ILogger logger)
     {
         Config = config;
         VortexServer = vortexServer;

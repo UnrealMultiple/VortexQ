@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using System.Reflection;
 
-namespace Lagrange.XocMat.Adapter.Converter;
+namespace Vortex.Adapter.Converter;
 
 internal class MessageTypeConverter : JsonConverter
 {

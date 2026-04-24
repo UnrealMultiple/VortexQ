@@ -6,18 +6,10 @@ using TShockAPI;
 
 namespace Vortex.Adapter.Processing;
 
-/// <summary>
-/// 数据包处理器管理器
-/// 负责从程序集自动注册和管理所有数据包处理器
-/// </summary>
 public sealed class PacketHandlerManager
 {
     private readonly VortexClient _client;
     private readonly Dictionary<PacketType, HandlerInfo> _handlers = new();
-
-    /// <summary>
-    /// 处理器信息
-    /// </summary>
     private readonly struct HandlerInfo
     {
         public readonly Func<VortexClient, IRequestHandler> Factory;
@@ -34,9 +26,6 @@ public sealed class PacketHandlerManager
         RegisterHandlersFromAssembly();
     }
 
-    /// <summary>
-    /// 从当前程序集自动注册所有继承 RequestHandlerBase 的处理器
-    /// </summary>
     private void RegisterHandlersFromAssembly()
     {
         var assembly = Assembly.GetExecutingAssembly();
@@ -51,9 +40,6 @@ public sealed class PacketHandlerManager
         TShock.Log.ConsoleInfo($"[Vortex.Adapter] 已自动注册 {_handlers.Count} 个数据包处理器");
     }
 
-    /// <summary>
-    /// 判断类型是否继承 RequestHandlerBase
-    /// </summary>
     private static bool IsRequestHandler(Type type)
     {
         while (type != null && type != typeof(object))
@@ -67,22 +53,16 @@ public sealed class PacketHandlerManager
         return false;
     }
 
-    /// <summary>
-    /// 注册单个处理器类型
-    /// </summary>
     private void RegisterHandlerType(Type handlerType)
     {
         try
         {
-            // 获取 PacketType
             var packetType = GetPacketTypeFromHandlerType(handlerType);
             if (packetType == default)
             {
                 TShock.Log.ConsoleError($"[Vortex.Adapter] 无法获取处理器 {handlerType.Name} 的 PacketType");
                 return;
             }
-
-            // 编译工厂方法
             var factory = CreateFactory(handlerType);
 
             _handlers[packetType] = new HandlerInfo(factory);
@@ -93,18 +73,13 @@ public sealed class PacketHandlerManager
         }
     }
 
-    /// <summary>
-    /// 从处理器类型获取 PacketType
-    /// </summary>
     private static PacketType GetPacketTypeFromHandlerType(Type handlerType)
     {
         try
         {
-            // 使用反射获取 PacketType 属性，避免创建实例
             var packetTypeProperty = handlerType.GetProperty("PacketType");
             if (packetTypeProperty != null)
             {
-                // 创建临时实例获取 PacketType
                 var tempClient = new VortexClient(new Setting.Configs.SocketConfig());
                 var handler = (IRequestHandler)Activator.CreateInstance(handlerType, tempClient)!;
                 var packetType = handler.PacketType;
@@ -119,20 +94,14 @@ public sealed class PacketHandlerManager
         return default;
     }
 
-    /// <summary>
-    /// 创建处理器工厂方法
-    /// </summary>
     private static Func<VortexClient, IRequestHandler> CreateFactory(Type handlerType)
     {
-        var constructor = handlerType.GetConstructor(new[] { typeof(VortexClient) })
+        var constructor = handlerType.GetConstructor([typeof(VortexClient)])
             ?? throw new InvalidOperationException($"处理器 {handlerType.Name} 缺少 VortexClient 构造函数");
 
-        return client => (IRequestHandler)constructor.Invoke(new object[] { client });
+        return client => (IRequestHandler)constructor.Invoke([client]);
     }
 
-    /// <summary>
-    /// 处理数据包
-    /// </summary>
     public async Task<bool> HandlePacketAsync(INetPacket packet)
     {
         if (!_handlers.TryGetValue(packet.PacketID, out var handlerInfo))
@@ -141,7 +110,6 @@ public sealed class PacketHandlerManager
             return false;
         }
 
-        // 检查包类型
         if (packet is not IServicePacket servicePacket)
         {
             TShock.Log.ConsoleError($"[Vortex.Adapter] 数据包 {packet.PacketID} 不是 IServicePacket 类型");
@@ -150,16 +118,11 @@ public sealed class PacketHandlerManager
 
         try
         {
-            // 创建处理器实例并处理请求
             var handler = handlerInfo.Factory(_client);
-            TShock.Log.ConsoleInfo($"[Vortex.Adapter] 正在处理数据包 {packet.PacketID}");
             var response = handler.Handle(servicePacket);
-
-            // 发送响应
             if (response != null)
             {
                 await _client.SendPacketAsync(response);
-                TShock.Log.ConsoleInfo($"[Vortex.Adapter] 已发送响应 {response.PacketID}");
             }
 
             return true;
@@ -170,9 +133,5 @@ public sealed class PacketHandlerManager
             return false;
         }
     }
-
-    /// <summary>
-    /// 获取已注册的处理器数量
-    /// </summary>
     public int HandlerCount => _handlers.Count;
 }

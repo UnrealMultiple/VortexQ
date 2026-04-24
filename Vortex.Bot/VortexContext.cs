@@ -4,9 +4,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Vortex.Bot.Command;
 using Vortex.Bot.Configuration;
+using Vortex.Bot.Core.Service;
 using Vortex.Bot.Database;
 using Vortex.Bot.Database.Models;
-using Vortex.Bot.Services;
 using Vortex.Bot.Utility;
 
 namespace Vortex.Bot;
@@ -29,7 +29,7 @@ public class VortexContext(
     /// <summary>
     /// VortexServer 实例，用于与客户端通信
     /// </summary>
-    public VortexServer? Server { get; set; }
+    public VortexSocketService? Server { get; set; }
 
     public static string Path => Environment.CurrentDirectory;
     public static string SavePath => System.IO.Path.Combine(Path, "Config");

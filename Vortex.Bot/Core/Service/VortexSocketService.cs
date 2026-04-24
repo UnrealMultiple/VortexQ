@@ -9,35 +9,30 @@ using Vortex.Protocol.Interfaces;
 using Vortex.Protocol.Packets;
 using Vortex.Protocol.Serialization;
 
-namespace Vortex.Bot.Services;
+namespace Vortex.Bot.Core.Service;
 
-/// <summary>
-/// Vortex TCP 服务器
-/// 负责监听客户端连接、接收包并分发处理
-/// </summary>
-public class VortexServer(
-    ILogger<VortexServer> logger,
+public class VortexSocketService(
+    ILogger<VortexSocketService> logger,
     IConfiguration configuration,
     IServiceProvider serviceProvider,
     VortexContext vortexContext,
-    ClientConnectionManager connectionManager,
-    PacketHandlerManager handlerManager) : BackgroundService
+    ClientConnectionService connectionManager,
+    PacketHandlerService handlerManager) : BackgroundService
 {
-    private readonly ILogger<VortexServer> _logger = logger;
+    private readonly ILogger<VortexSocketService> _logger = logger;
     private readonly SocketConfiguration _config = configuration.GetSection("Core:Socket").Get<SocketConfiguration>() ?? new SocketConfiguration();
     private readonly PacketSerializer _serializer = new();
     private readonly VortexContext _vortexContext = vortexContext;
 
-    // 子系统
-    private readonly ClientConnectionManager _connectionManager = connectionManager;
-    private readonly PacketHandlerManager _handlerManager = handlerManager;
+    private readonly ClientConnectionService _connectionManager = connectionManager;
+    private readonly PacketHandlerService _handlerManager = handlerManager;
 
     private TcpListener? _listener;
     private bool _isRunning;
 
     public VortexContext VortexContext => _vortexContext;
-    public ClientConnectionManager Connections => _connectionManager;
-    public PacketHandlerManager Handlers => _handlerManager;
+    public ClientConnectionService Connections => _connectionManager;
+    public PacketHandlerService Handlers => _handlerManager;
     public bool IsRunning => _isRunning;
     public IServiceProvider Services => serviceProvider;
 
@@ -62,6 +57,9 @@ public class VortexServer(
             _logger.LogInformation("[VortexServer] Server is disabled in configuration");
             return;
         }
+
+        _handlerManager.RegisterHandlersFromAssembly(System.Reflection.Assembly.GetExecutingAssembly());
+        _logger.LogInformation("[VortexServer] Registered {HandlerCount} packet handlers", _handlerManager.HandlerCount);
 
         _listener = new TcpListener(IPAddress.Any, _config.Port);
         _listener.Start();
@@ -99,7 +97,6 @@ public class VortexServer(
 
         try
         {
-            // 第一步：等待认证
             var authPacket = await ReadPacketAsync(stream, cancellationToken);
             if (authPacket is not ClientAuthPacket auth)
             {
@@ -108,19 +105,15 @@ public class VortexServer(
                 return;
             }
 
-            // 验证 Token
             if (auth.Token != _config.Token)
             {
                 _logger.LogWarning("[VortexServer] Client {Endpoint} auth failed: invalid token", endpoint);
                 await SendResponseAsync(stream, new ClientAuthResponsePacket { Success = false, Message = "Invalid token" }, cancellationToken);
                 return;
             }
-
-            // 认证成功，发送响应
             await SendResponseAsync(stream, new ClientAuthResponsePacket { Success = true, Message = "Auth success" }, cancellationToken);
             _logger.LogInformation("[VortexServer] Client {Endpoint} authenticated successfully", endpoint);
 
-            // 第二步：等待身份包
             var identityPacket = await ReadPacketAsync(stream, cancellationToken);
             if (identityPacket is not ClientIdentityPacket identity)
             {
@@ -128,11 +121,9 @@ public class VortexServer(
                 return;
             }
 
-            // 注册客户端
             client = HandleIdentity(identity, tcpClient, endpoint);
             await SendResponseAsync(stream, CreateIdentityResponse(client), cancellationToken);
 
-            // 第三步：处理后续包
             while (!cancellationToken.IsCancellationRequested)
             {
                 var packet = await ReadPacketAsync(stream, cancellationToken);
@@ -149,10 +140,9 @@ public class VortexServer(
         {
             if (client != null)
             {
-                // 从 TerrariaServerManager 注销
                 try
                 {
-                    var serverManager = Services.GetService(typeof(TerrariaServerManager)) as TerrariaServerManager;
+                    var serverManager = Services.GetService(typeof(TerrariaServerService)) as TerrariaServerService;
                     serverManager?.UnregisterClientConnection(client.ClientId);
                 }
                 catch (Exception ex)
@@ -212,11 +202,9 @@ public class VortexServer(
         _logger.LogInformation(
             "[VortexServer] Client registered: {ClientName} ({ClientId})",
             client.ClientName, client.ClientId);
-
-        // 注册到 TerrariaServerManager
         try
         {
-            var serverManager = Services.GetService(typeof(TerrariaServerManager)) as TerrariaServerManager;
+            var serverManager = Services.GetService(typeof(TerrariaServerService)) as TerrariaServerService;
             serverManager?.RegisterClientConnection(client.ClientName, client.ClientId);
         }
         catch (Exception ex)
@@ -277,9 +265,6 @@ public class VortexServer(
 
     #region 便捷方法
 
-    /// <summary>
-    /// 向指定客户端发送包
-    /// </summary>
     public async Task<bool> SendToClientAsync(Guid clientId, INetPacket packet)
     {
         var client = _connectionManager.GetClient(clientId);
@@ -302,18 +287,12 @@ public class VortexServer(
         }
     }
 
-    /// <summary>
-    /// 向指定会话发送包
-    /// </summary>
     public Task<bool> SendToSessionAsync(int sessionId, INetPacket packet)
     {
         var client = _connectionManager.GetClientBySession(sessionId);
         return client != null ? SendToClientAsync(client.ClientId, packet) : Task.FromResult(false);
     }
 
-    /// <summary>
-    /// 广播给所有客户端
-    /// </summary>
     public async Task<int> BroadcastAsync(INetPacket packet)
     {
         var clients = _connectionManager.GetAllClients();
@@ -322,9 +301,6 @@ public class VortexServer(
         return results.Count(r => r);
     }
 
-    /// <summary>
-    /// 向指定客户端发送请求并等待响应
-    /// </summary>
     public async Task<TResponse?> RequestAsync<TRequest, TResponse>(Guid clientId, TRequest request, int timeoutMs = 5000)
         where TRequest : IServicePacket
         where TResponse : class, IClientPacket

@@ -14,14 +14,14 @@ public class ServerStatusHandler(Net.VortexClient client) : RequestHandlerBase<S
         var plugins = new List<Vortex.Protocol.Models.Plugin>();
         try
         {
-            plugins = ServerApi.Plugins
+            plugins = [.. ServerApi.Plugins
                 .Where(x => x.Plugin != null)
                 .Select(x => new Vortex.Protocol.Models.Plugin
                 {
                     Name = x.Plugin.Name ?? "Unknown",
                     Author = x.Plugin.Author ?? "Unknown",
                     Description = x.Plugin.Description ?? "",
-                }).ToList();
+                })];
         }
         catch (Exception ex)
         {

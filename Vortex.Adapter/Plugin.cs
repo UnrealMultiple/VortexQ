@@ -1,8 +1,6 @@
 using Vortex.Adapter.DB;
 using Vortex.Adapter.Net;
 using Vortex.Adapter.Setting;
-using Vortex.Protocol.Enums;
-using Vortex.Protocol.Interfaces;
 using Vortex.Protocol.Models;
 using Vortex.Protocol.Packets;
 using System.Reflection;
@@ -21,7 +19,7 @@ public class Plugin : TerrariaPlugin
     public override string Author => "少司命";
     public override string Description => "Vortex 适配插件";
     public override string Name => Assembly.GetExecutingAssembly().GetName().Name!;
-    public override Version Version => new Version(1, 0, 0, 0);
+    public override Version Version => new(1, 0, 0, 0);
 
     internal static readonly List<TSPlayer> ServerPlayers = new();
     internal static Channel<int> Channeler = Channel.CreateBounded<int>(1);
@@ -116,7 +114,13 @@ public class Plugin : TerrariaPlugin
 
     private void TimerUpdate(object? sender, ElapsedEventArgs e)
     {
-        // 心跳包可以通过其他方式实现，或者使用专门的 PingPacket
+        Task.Run(async () => 
+        {
+            if (Client?.IsConnected == true)
+            {
+                await Client.SendPacketAsync(new HeartBeatPacket());
+            }
+        });
     }
 
     private void OnClientConnected()
@@ -198,8 +202,6 @@ public class Plugin : TerrariaPlugin
             Main.GameMode = mode;
             TSPlayer.All.SendData(PacketTypes.WorldInfo);
         }
-
-        // 服务器初始化完成，可以发送通知
         TShock.Log.ConsoleInfo("[Vortex.Adapter] 服务器初始化完成");
     }
 
@@ -215,34 +217,34 @@ public class Plugin : TerrariaPlugin
                     ? TShock.Config.Settings.CommandSilentSpecifier
                     : TShock.Config.Settings.CommandSpecifier;
 
-                // 发送玩家命令事件到服务器
-                _ = Task.Run(async () =>
+
+                Client?.SendPacketAsync(new PlayerMessagePacket
                 {
-                    if (Client?.IsConnected == true)
+                    IsCommand = true,
+                    Message = args.Text,
+                    Player = new Protocol.Models.Player
                     {
-                        // 这里可以发送一个专门的 PlayerCommandPacket
-                        // 暂时使用广播消息
-                        await Client.SendPacketAsync(new BroadcastMessagePacket
-                        {
-                            Text = $"[命令] {player.Name}: {args.Text}",
-                            Color = [255, 255, 255]
-                        });
-                    }
+                        Name = player.Name,
+                        Group = player.Group?.Name ?? string.Empty,
+                        Prefix = player.Group?.Prefix ?? string.Empty,
+                        Index = player.Index,
+                        IsLogin = player.IsLoggedIn
+                    },
                 });
             }
             else
             {
-                // 发送玩家聊天事件到服务器
-                _ = Task.Run(async () =>
+                Client?.SendPacketAsync(new PlayerMessagePacket
                 {
-                    if (Client?.IsConnected == true)
+                    Message = args.Text,
+                    Player = new Protocol.Models.Player
                     {
-                        await Client.SendPacketAsync(new BroadcastMessagePacket
-                        {
-                            Text = $"[{player.Group.Name}]{player.Name}: {args.Text}",
-                            Color = [255, 255, 255]
-                        });
-                    }
+                        Name = player.Name,
+                        Group = player.Group?.Name ?? string.Empty,
+                        Prefix = player.Group?.Prefix ?? string.Empty,
+                        Index = player.Index,
+                        IsLogin = player.IsLoggedIn
+                    },
                 });
             }
         }
@@ -273,16 +275,15 @@ public class Plugin : TerrariaPlugin
             ServerPlayers.Remove(player);
             Onlines.UpdateAll();
 
-            // 发送玩家离开事件
-            _ = Task.Run(async () =>
+            Client?.SendPacketAsync(new PlayerLeavePacket
             {
-                if (Client?.IsConnected == true)
+                Player = new Protocol.Models.Player
                 {
-                    await Client.SendPacketAsync(new BroadcastMessagePacket
-                    {
-                        Text = $"{player.Name} 离开了服务器",
-                        Color = [255, 255, 0]
-                    });
+                    Name = player.Name,
+                    Group = player.Group?.Name ?? string.Empty,
+                    Prefix = player.Group?.Prefix ?? string.Empty,
+                    Index = player.Index,
+                    IsLogin = player.IsLoggedIn
                 }
             });
         }
@@ -294,17 +295,15 @@ public class Plugin : TerrariaPlugin
         if (player != null && player.Active)
         {
             ServerPlayers.Add(player);
-
-            // 发送玩家加入事件
-            _ = Task.Run(async () =>
+            Client?.SendPacketAsync(new PlayerJoinPacket
             {
-                if (Client?.IsConnected == true)
+                Player = new Protocol.Models.Player
                 {
-                    await Client.SendPacketAsync(new BroadcastMessagePacket
-                    {
-                        Text = $"{player.Name} 加入了服务器",
-                        Color = [255, 255, 0]
-                    });
+                    Name = player.Name,
+                    Group = player.Group?.Name ?? string.Empty,
+                    Prefix = player.Group?.Prefix ?? string.Empty,
+                    Index = player.Index,
+                    IsLogin = player.IsLoggedIn
                 }
             });
         }

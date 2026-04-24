@@ -1,6 +1,6 @@
 namespace Vortex.Bot.Configuration;
 
-public class GameServerEntry
+public class TerrariaServerEnity
 {
     public string Name { get; set; } = "服务器1";
     public string IP { get; set; } = "";
@@ -22,7 +22,7 @@ public class GameServerEntry
     public List<long> ForwardGroups { get; set; } = [];
 }
 
-public class GameServerList
+public class TerrariaServerCollection
 {
-    public List<GameServerEntry> Servers { get; set; } = [];
+    public List<TerrariaServerEnity> Servers { get; set; } = [];
 }

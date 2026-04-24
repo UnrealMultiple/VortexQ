@@ -1,4 +1,4 @@
-﻿namespace Vortex.Bot.Configuration;
+﻿﻿namespace Vortex.Bot.Configuration;
 
 public class ServerConfiguration
 {

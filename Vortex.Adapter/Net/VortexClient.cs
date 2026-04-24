@@ -1,6 +1,5 @@
 using System.Net.Sockets;
 using Vortex.Adapter.Setting.Configs;
-using Vortex.Protocol.Enums;
 using Vortex.Protocol.Interfaces;
 using Vortex.Protocol.Packets;
 using Vortex.Protocol.Serialization;
@@ -47,7 +46,6 @@ public class VortexClient(SocketConfig config) : IDisposable
                 {
                     if (await AuthenticateAsync())
                     {
-                        // 发送身份包
                         var identityPacket = new ClientIdentityPacket
                         {
                             ClientId = _clientId,
@@ -55,7 +53,6 @@ public class VortexClient(SocketConfig config) : IDisposable
                         };
                         await SendPacketAsync(identityPacket);
 
-                        // 读取身份响应
                         using var cts = new CancellationTokenSource(5000);
                         var response = await ReadPacketAsync(cts.Token);
                         if (response is ClientIdentityResponsePacket identityResponse && identityResponse.Success)
@@ -118,11 +115,8 @@ public class VortexClient(SocketConfig config) : IDisposable
         {
             using var cts = new CancellationTokenSource(5000);
 
-            // 发送认证包
             var authPacket = new ClientAuthPacket { Token = _token };
             await SendPacketAsync(authPacket);
-
-            // 读取响应
             var response = await ReadPacketAsync(cts.Token);
 
             if (response is ClientAuthResponsePacket authResponse && authResponse.Success)
@@ -216,8 +210,6 @@ public class VortexClient(SocketConfig config) : IDisposable
                     TShockAPI.TShock.Log.ConsoleInfo("[Vortex.Adapter] 连接已关闭");
                     break;
                 }
-
-                TShockAPI.TShock.Log.ConsoleInfo($"[Vortex.Adapter] 收到数据包: {packet.PacketID}");
 
                 try
                 {

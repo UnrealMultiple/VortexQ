@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Command;
-using Vortex.Bot.Services;
+using Vortex.Bot.Core.Service;
 
 namespace Vortex.Bot.Command.Terraria;
 
@@ -13,7 +13,7 @@ public static class ServerRestartCommand
     [Main]
     public static async Task RestartServer(CommandArgs args)
     {
-        var serverManager = args.Context.Server?.Services.GetService<TerrariaServerManager>();
+        var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
         if (serverManager == null)
         {
             await args.ReplyAsync("服务器管理器未初始化");

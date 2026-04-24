@@ -4,22 +4,17 @@ using Microsoft.Extensions.Logging;
 using Vortex.Bot.Models;
 using Vortex.Protocol.Packets;
 
-namespace Vortex.Bot.Services;
+namespace Vortex.Bot.Core.Service;
 
-public class ClientConnectionManager
+public class ClientConnectionService(ILogger<ClientConnectionService> logger)
 {
-    private readonly ILogger<ClientConnectionManager> _logger;
+    private readonly ILogger<ClientConnectionService> _logger = logger;
     private readonly ConcurrentDictionary<Guid, ClientConnection> _clientsById = new();
     private readonly ConcurrentDictionary<int, Guid> _sessionToClientId = new();
-    private int _nextSessionId = 1;
+    private int _nextSessionId = 0;
 
     public event Action<ClientConnection>? OnClientConnected;
     public event Action<ClientConnection>? OnClientDisconnected;
-
-    public ClientConnectionManager(ILogger<ClientConnectionManager> logger)
-    {
-        _logger = logger;
-    }
 
     public ClientConnection RegisterClient(ClientIdentityPacket packet, TcpClient tcpClient, string endpoint)
     {

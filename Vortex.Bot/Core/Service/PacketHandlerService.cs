@@ -5,14 +5,14 @@ using Vortex.Bot.Models;
 using Vortex.Bot.Processing;
 using Vortex.Protocol.Interfaces;
 
-namespace Vortex.Bot.Services;
+namespace Vortex.Bot.Core.Service;
 
-public class PacketHandlerManager(
-    ILogger<PacketHandlerManager> logger,
+public class PacketHandlerService(
+    ILogger<PacketHandlerService> logger,
     IServiceProvider serviceProvider,
     VortexContext vortexContext)
 {
-    private readonly ILogger<PacketHandlerManager> _logger = logger;
+    private readonly ILogger<PacketHandlerService> _logger = logger;
     private readonly IServiceProvider _serviceProvider = serviceProvider;
     private readonly VortexContext _vortexContext = vortexContext;
 
@@ -84,6 +84,27 @@ public class PacketHandlerManager(
         _logger.LogInformation("[HandlerManager] Registered handler for {PacketType}", typeof(TRequest).Name);
     }
 
+    public void RegisterHandler<TRequest>(RoutedPushHandlerBase<TRequest> handler)
+        where TRequest : INetPacket, new()
+    {
+        var instance = new TRequest();
+        var packetId = (byte)instance.PacketID;
+
+        handler.Context = _vortexContext;
+        handler.Server = _vortexContext.Server;
+
+        _handlers[packetId] = (packet, context) =>
+        {
+            if (packet is TRequest request)
+            {
+                handler.Handle(request, context);
+            }
+            return Task.FromResult<IClientPacket?>(null);
+        };
+
+        _logger.LogInformation("[HandlerManager] Registered push handler for {PacketType}", typeof(TRequest).Name);
+    }
+
     public void RegisterHandlersFromAssembly(System.Reflection.Assembly assembly)
     {
         var routedHandlerTypes = assembly.GetTypes()
@@ -130,9 +151,35 @@ public class PacketHandlerManager(
                 .Where(m => m.Name == nameof(RegisterHandler) && m.IsGenericMethod)
                 .First(m => m.GetParameters().Length == 1 &&
                            !m.GetParameters()[0].ParameterType.IsInterface &&
-                           m.GetParameters()[0].ParameterType.IsClass);
+                           m.GetParameters()[0].ParameterType.IsClass &&
+                           m.GetGenericArguments().Length == 2);
 
             method?.MakeGenericMethod(requestType, responseType).Invoke(this, [handlerInstance]);
+        }
+
+        var pushHandlerTypes = assembly.GetTypes()
+            .Where(t => !t.IsAbstract && !t.IsInterface)
+            .Where(t => t.BaseType?.IsGenericType == true &&
+                       t.BaseType.GetGenericTypeDefinition() == typeof(RoutedPushHandlerBase<>));
+
+        foreach (var handlerType in pushHandlerTypes)
+        {
+            var baseType = handlerType.BaseType!;
+            var genericArgs = baseType.GetGenericArguments();
+            var requestType = genericArgs[0];
+
+            var handlerInstance = _serviceProvider.GetService(handlerType)
+                ?? Activator.CreateInstance(handlerType)!;
+
+            var method = GetType().GetMethods()
+                .Where(m => m.Name == nameof(RegisterHandler) && m.IsGenericMethod)
+                .First(m => m.GetParameters().Length == 1 &&
+                           !m.GetParameters()[0].ParameterType.IsInterface &&
+                           m.GetParameters()[0].ParameterType.IsClass &&
+                           m.GetGenericArguments().Length == 1 &&
+                           m.GetParameters()[0].ParameterType.Name == typeof(RoutedPushHandlerBase<>).Name);
+
+            method?.MakeGenericMethod(requestType).Invoke(this, [handlerInstance]);
         }
     }
 
@@ -152,8 +199,6 @@ public class PacketHandlerManager(
                 return null;
             }
         }
-
-        _logger.LogWarning("[HandlerManager] No handler registered for packet {PacketID}", packet.PacketID);
         return null;
     }
 
