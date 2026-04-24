@@ -36,7 +36,6 @@ public static class OnlinePlayersCommand
         foreach (var server in servers)
         {
             var online = await server.GetOnlinePlayersAsync();
-            Console.WriteLine(online == null);
             var playerCount = online?.Players?.Count ?? 0;
             var maxCount = online?.MaxCount ?? 0;
 

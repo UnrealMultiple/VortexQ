@@ -1,15 +1,10 @@
 using System.Data;
 using LinqToDB;
 using LinqToDB.Data;
-using LinqToDB.DataProvider;
-using LinqToDB.DataProvider.SQLite;
 using Microsoft.Data.Sqlite;
 
 namespace Vortex.Bot.Database;
 
-/// <summary>
-/// 数据库服务实现
-/// </summary>
 public class DatabaseService : IDatabaseService, IDisposable
 {
     private readonly string _dbPath;
@@ -35,8 +30,6 @@ public class DatabaseService : IDatabaseService, IDisposable
     public DatabaseService(string dbPath)
     {
         _dbPath = dbPath;
-
-        // 确保目录存在
         var dir = Path.GetDirectoryName(dbPath);
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
         {
@@ -44,8 +37,6 @@ public class DatabaseService : IDatabaseService, IDisposable
         }
 
         ConnectionString = $"Data Source={dbPath}";
-
-        // 初始化 RecordBase
         RecordBase.Initialize(ConnectionString);
     }
 
@@ -59,23 +50,18 @@ public class DatabaseService : IDatabaseService, IDisposable
         _connection?.Close();
         _connection?.Dispose();
         _connection = null;
+        GC.SuppressFinalize(this);
     }
 }
 
-/// <summary>
-/// 数据上下文实现
-/// </summary>
 public class DataContext<T> : DataConnection, IDataContext<T> where T : class, new()
 {
     public IQueryable<T> Records => this.GetTable<T>();
 
     public DataContext(string tableName, string connectionString)
-        : base(ProviderName.SQLiteMS, connectionString)
+        : base(new DataOptions().UseConnectionString(ProviderName.SQLiteMS, connectionString))
     {
-        // 配置字符串类型映射
         MappingSchema.AddScalarType(typeof(string), new LinqToDB.SqlQuery.SqlDataType(DataType.NVarChar, 255));
-
-        // 自动创建表（如果不存在）
         this.CreateTable<T>(tableName, tableOptions: TableOptions.CreateIfNotExists);
     }
 

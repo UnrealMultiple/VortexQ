@@ -301,7 +301,7 @@ public class VortexSocketService(
         return results.Count(r => r);
     }
 
-    public async Task<TResponse?> RequestAsync<TRequest, TResponse>(Guid clientId, TRequest request, int timeoutMs = 5000)
+    public async Task<TResponse?> RequestAsync<TRequest, TResponse>(Guid clientId, TRequest request, int timeoutMs = 1000)
         where TRequest : IServicePacket
         where TResponse : class, IClientPacket
     {
