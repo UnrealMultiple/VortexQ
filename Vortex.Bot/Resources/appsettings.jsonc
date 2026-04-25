@@ -31,6 +31,10 @@
         "Database": {
             "DbPath": "vortex.db"
         },
+        "Command": {
+            "EnablePrefix": false,
+            "Prefix": ""
+        },
         "SuperAdmins": []
     },
     "TerrariaServers": {

@@ -10,7 +10,7 @@ namespace Vortex.Bot.Command.Terraria;
 public static class ServerSwitchCommand
 {
     [Main]
-    public static async Task SwitchServer(CommandArgs args)
+    public static async Task SwitchServer(CommandArgs args, [Param("名称")] string serverName)
     {
         var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
         if (serverManager == null)
@@ -25,7 +25,6 @@ public static class ServerSwitchCommand
             return;
         }
 
-        var serverName = args.Params[0];
         var groupId = args is GroupCommandArgs groupArgs ? groupArgs.GroupUin : 0;
 
         if (!serverManager.TryGetServer(serverName, out var server) || server == null)

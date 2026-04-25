@@ -10,5 +10,7 @@ public class CoreConfiguration
 
     public DatabaseConfiguration Database { get; set; } = new();
 
+    public CommandConfiguration Command { get; set; } = new();
+
     public List<long> SuperAdmins { get; set; } = [523321293];
 }

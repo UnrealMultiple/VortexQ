@@ -10,65 +10,122 @@ internal sealed class CommandExecutor : CommandBase
     private readonly MethodInfo _method;
     private readonly bool _isFlexible;
     private readonly Type _argsType;
+    private readonly string _parentPrefix;
+    private readonly string _commandName;
+    private readonly string _paramInfo;
 
-    public CommandExecutor(MethodInfo method, string infoPrefix, bool isFlexible = false) : base(method)
+    public CommandExecutor(
+        MethodInfo method,
+        string parentPrefix,
+        string commandName,
+        bool isFlexible = false) : base(method)
     {
-        _isFlexible = isFlexible;
         _method = method;
+        _isFlexible = isFlexible;
+        _parentPrefix = parentPrefix;
+        _commandName = commandName;
 
-        var param = method.GetParameters();
-        var ap = new List<CommandParser.Parser>();
-        var sb = new StringBuilder();
-        sb.Append(infoPrefix);
+        var parameters = method.GetParameters();
+        ValidateParameters(parameters);
 
-        if (param.Length == 0 || !typeof(CommandArgs).IsAssignableFrom(param[0].ParameterType))
-            throw new InvalidOperationException($"Method {method.Name} must have a CommandArgs parameter as the first argument");
+        _argsType = parameters[0].ParameterType;
+        _argParsers = CreateParsers(parameters);
+        _paramInfo = BuildParamInfo(parameters);
 
-        _argsType = param[0].ParameterType;
+        UpdateInfo(commandName);
+    }
 
-        foreach (var p in param.Skip(1))
+    private void ValidateParameters(ParameterInfo[] parameters)
+    {
+        if (parameters.Length == 0 || !typeof(CommandArgs).IsAssignableFrom(parameters[0].ParameterType))
         {
-            if (!CommandParser.IsSupportedType(p.ParameterType))
-                throw new NotSupportedException($"Parameter type {p.ParameterType.Name} is not supported for command method {method.Name}");
+            throw new InvalidOperationException(
+                $"Method {_method.Name} must have a CommandArgs parameter as the first argument");
+        }
+    }
 
-            ap.Add(CommandParser.GetParser(p.ParameterType));
+    private CommandParser.Parser[] CreateParsers(ParameterInfo[] parameters)
+    {
+        return parameters
+            .Skip(1)
+            .Select(p =>
+            {
+                if (!CommandParser.IsSupportedType(p.ParameterType))
+                {
+                    throw new NotSupportedException(
+                        $"Parameter type {p.ParameterType.Name} is not supported for command method {_method.Name}");
+                }
+                return CommandParser.GetParser(p.ParameterType);
+            })
+            .ToArray();
+    }
 
+    private string BuildParamInfo(ParameterInfo[] parameters)
+    {
+        var sb = new StringBuilder();
+        foreach (var p in parameters.Skip(1))
+        {
             var paramAttr = p.GetCustomAttribute<ParamAttribute>();
             var paramDesc = paramAttr?.Description ?? p.Name ?? "param";
-            sb.Append($"<{paramDesc}: {CommandParser.GetFriendlyName(p.ParameterType)}> ");
+            sb.Append($" <{paramDesc}: {CommandParser.GetFriendlyName(p.ParameterType)}>");
         }
-
-        _argParsers = [.. ap];
-        Info = sb.ToString().TrimEnd();
+        return sb.ToString();
     }
+
+    public void UpdateInfo(string actualCommandName)
+    {
+        if (string.IsNullOrEmpty(actualCommandName))
+        {
+            Info = $"{_parentPrefix}{_paramInfo}";
+        }
+        else
+        {
+            Info = $"{_parentPrefix} {actualCommandName}{_paramInfo}";
+        }
+    }
+
+    public string GetParamInfo() => _paramInfo;
 
     public bool SupportsArgsType(Type argsType) => _argsType.IsAssignableFrom(argsType);
 
     public override async Task<ParseResult> TryParseAsync(CommandArgs args, int current, string commandName)
     {
-        if (!_argsType.IsAssignableFrom(args.GetType()))
+        if (current > 0)
+        {
+            var actualCmd = args.Params[current - 1];
+            UpdateInfo(actualCmd);
+        }
+
+        if (!SupportsArgsType(args.GetType()))
             return GetResult(int.MaxValue);
 
+        return await ExecuteAsync(args, current);
+    }
+
+    private async Task<ParseResult> ExecuteAsync(CommandArgs args, int current)
+    {
         var p = args.Params;
         var n = _argParsers.Length;
+        var expectedCount = n + current;
 
         if (_isFlexible)
         {
-            if (p.Count < n + current)
-                return GetResult(Math.Abs(n + current - p.Count));
+            if (p.Count < expectedCount)
+                return GetResult(expectedCount - p.Count);
         }
         else
         {
-            if (p.Count != n + current)
-                return GetResult(Math.Abs(n + current - p.Count));
+            if (p.Count != expectedCount)
+                return GetResult(Math.Abs(expectedCount - p.Count));
         }
+        var invokeArgs = new object?[n + 1];
+        invokeArgs[0] = args;
 
-        var a = new object?[n + 1];
-        a[0] = args;
-        var unmatched = _argParsers.Where((t, i) => !t(p[current + i], out a[i + 1])).Count();
-
-        if (unmatched != 0)
-            return GetResult(unmatched);
+        for (int i = 0; i < n; i++)
+        {
+            if (!_argParsers[i](p[current + i], out invokeArgs[i + 1]))
+                return GetResult(n - i);
+        }
 
         var permResult = await CheckPermissionAsync(args);
         if (permResult.Result != PermissionResult.Granted)
@@ -76,8 +133,7 @@ internal sealed class CommandExecutor : CommandBase
             await args.ReplyAsync(permResult.DenyMessage ?? "你没有权限执行此指令。");
             return GetResult(0);
         }
-
-        var result = _method.Invoke(null, a);
+        var result = _method.Invoke(null, invokeArgs);
         if (result is Task task)
             await task;
 

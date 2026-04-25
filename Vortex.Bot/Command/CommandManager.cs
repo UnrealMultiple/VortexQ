@@ -55,19 +55,35 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
     public Task<bool> ExecuteGroupAsync(string commandText, BotMessageEvent messageEvent, VortexContext context)
     {
         return ExecuteAsync(commandText, messageEvent, CommandType.Group,
-            (@params, evt) => new GroupCommandArgs(context, @params, evt));
+            (@params, evt) => new GroupCommandArgs(context, @params, evt), context);
     }
 
     public Task<bool> ExecutePrivateAsync(string commandText, BotMessageEvent messageEvent, VortexContext context)
     {
         return ExecuteAsync(commandText, messageEvent, CommandType.Friend,
-            (@params, evt) => new PrivateCommandArgs(context, @params, evt));
+            (@params, evt) => new PrivateCommandArgs(context, @params, evt), context);
     }
 
     public async Task<bool> ExecuteServerAsync(string commandText, VortexContext context, string executorName = "Console", bool hasServerPermission = true)
     {
         var parameters = CommandUtility.ParseParameters(commandText);
         if (parameters.Count == 0) return false;
+
+        var cmdConfig = context.Configuration.Command;
+        if (cmdConfig.EnablePrefix && !string.IsNullOrEmpty(cmdConfig.Prefix))
+        {
+            if (!parameters[0].StartsWith(cmdConfig.Prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogDebug("Command prefix mismatch: {Command}", parameters[0]);
+                return false;
+            }
+            parameters[0] = parameters[0][cmdConfig.Prefix.Length..];
+            if (string.IsNullOrEmpty(parameters[0]))
+            {
+                _logger.LogDebug("Empty command after removing prefix");
+                return false;
+            }
+        }
 
         var cmdName = parameters[0].ToLowerInvariant();
         if (!_commands.TryGetValue(cmdName, out var registration))
@@ -83,7 +99,11 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
         }
 
         var argsParams = parameters.Skip(1).ToList();
-        var args = new ServerCommandArgs(context, argsParams, executorName, hasServerPermission);
+        var args = new ServerCommandArgs(context, argsParams, executorName, hasServerPermission)
+        {
+            CommandName = parameters[0],
+            CommandPrefix = cmdConfig.EnablePrefix ? cmdConfig.Prefix : string.Empty
+        };
 
         if (await CommandEvents.TriggerCommandExecuting(args, cmdName))
         {
@@ -99,11 +119,28 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
         string commandText,
         BotMessageEvent messageEvent,
         CommandType requiredType,
-        Func<List<string>, BotMessageEvent, TArgs> argsFactory)
+        Func<List<string>, BotMessageEvent, TArgs> argsFactory,
+        VortexContext context)
         where TArgs : CommandArgs
     {
         var parameters = CommandUtility.ParseParameters(commandText);
         if (parameters.Count == 0) return false;
+
+        var cmdConfig = context.Configuration.Command;
+        if (cmdConfig.EnablePrefix && !string.IsNullOrEmpty(cmdConfig.Prefix))
+        {
+            if (!parameters[0].StartsWith(cmdConfig.Prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogDebug("Command prefix mismatch: {Command}", parameters[0]);
+                return false;
+            }
+            parameters[0] = parameters[0][cmdConfig.Prefix.Length..];
+            if (string.IsNullOrEmpty(parameters[0]))
+            {
+                _logger.LogDebug("Empty command after removing prefix");
+                return false;
+            }
+        }
 
         var cmdName = parameters[0].ToLowerInvariant();
         if (!_commands.TryGetValue(cmdName, out var registration))
@@ -121,6 +158,8 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
 
         var argsParams = parameters.Skip(1).ToList();
         var args = argsFactory(argsParams, messageEvent);
+        args.CommandName = parameters[0];
+        args.CommandPrefix = cmdConfig.EnablePrefix ? cmdConfig.Prefix : string.Empty;
 
         if (await CommandEvents.TriggerCommandExecuting(args, cmdName))
         {

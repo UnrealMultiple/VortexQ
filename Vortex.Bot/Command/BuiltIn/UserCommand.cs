@@ -17,26 +17,13 @@ public static class UserCommand
         [Main]
         public static async Task Execute(GroupCommandArgs args)
         {
-            if (args.Account != null)
-            {
-                await args.ReplyAsync("你已经注册过了！");
-                return;
-            }
-
             Account.Add(args.SenderUin, "default");
-
             await args.ReplyAsync($"注册成功！\nQQ: {args.SenderUin}\n默认权限组: default");
         }
 
         [Main]
         public static async Task Execute(PrivateCommandArgs args)
         {
-            if (args.Account != null)
-            {
-                await args.ReplyAsync("你已经注册过了！");
-                return;
-            }
-
             Account.Add(args.SenderUin, "default");
 
             await args.ReplyAsync($"注册成功！\nQQ: {args.SenderUin}\n默认权限组: default");

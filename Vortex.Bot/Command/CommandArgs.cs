@@ -18,10 +18,14 @@ public abstract class CommandArgs(VortexContext context, List<string> @params, B
     public ILogger Logger => Context.Logger;
     public List<string> Params { get; init; } = @params;
     public BotMessageEvent? MessageEvent { get; init; } = messageEvent;
+    public string CommandName { get; set; } = string.Empty;
+    public string CommandPrefix { get; set; } = string.Empty;
     public BotMessage? Message => MessageEvent?.Message;
     public MessageChain? MessageChain => Message?.Entities;
     public long SenderUin => Message?.Contact.Uin ?? 0;
-    public Account? Account { get; private set; }
+#pragma warning disable CS8618
+    public Account Account { get; private set; }
+#pragma warning restore CS8618
     public Group Group { get; private set; } = DefaultGroup.Instance;
     public bool IsSuperAdmin { get; private set; }
     protected void InitializeAccount()
@@ -29,15 +33,8 @@ public abstract class CommandArgs(VortexContext context, List<string> @params, B
         if (SenderUin > 0)
         {
             IsSuperAdmin = Context.Configuration.SuperAdmins.Contains(SenderUin);
-            Account = Account.GetByUserId(SenderUin);
-            if (Account != null)
-            {
-                Group = Account.Group;
-            }
-            else
-            {
-                Group = DefaultGroup.Instance;
-            }
+            Account = Account.GetOrDefault(SenderUin);
+            Group = Account.Group;
         }
     }
 
@@ -146,7 +143,7 @@ public class ServerCommandArgs : CommandArgs
     public bool HasServerPermission { get; init; }
 
     public ServerCommandArgs(VortexContext context, List<string> @params, string executorName, bool hasServerPermission)
-        : base(context, @params, null)  // 服务器指令没有消息事件
+        : base(context, @params, null)
     {
         ExecutorName = executorName;
         HasServerPermission = hasServerPermission;
@@ -154,7 +151,6 @@ public class ServerCommandArgs : CommandArgs
 
     public new bool HasPermission(string permission)
     {
-        // 服务器执行者默认拥有所有权限
         if (HasServerPermission)
             return true;
 
