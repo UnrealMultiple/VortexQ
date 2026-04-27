@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Core.Service;
 using Vortex.Bot.Utility.Images;
-using Vortex.Protocol.Packets;
 
 namespace Vortex.Bot.Command.Terraria;
 
@@ -28,9 +27,7 @@ public static class InventoryCommand
             return;
         }
 
-        await args.ReplyWithAtAsync($"正在查询 [{server.Config.Name}] 玩家 {playerName} 的背包...");
-
-        PlayerInventoryPacketResponse? result = await server.QueryPlayerInventoryAsync(playerName);
+        var result = await server.QueryPlayerInventoryAsync(playerName);
 
         if (result?.Success == true && result.PlayerData != null)
         {

@@ -71,14 +71,27 @@ public class InventoryGenerate
     public int RegionGapX { get; set; } = 40;
     public int RegionGapY { get; set; } = 70;
 
-    public Color BackgroundColor { get; set; } = Color.FromRgb(45, 55, 72);
-    public Color CardColor { get; set; } = Color.FromRgb(65, 75, 95);
-    public Color CardBorderColor { get; set; } = Color.FromRgb(90, 100, 125);
-    public Color SlotEmptyColor { get; set; } = Color.FromRgb(55, 65, 85);
-    public Color SlotBorderColor { get; set; } = Color.FromRgb(80, 90, 115);
-    public Color TitleColor { get; set; } = Color.FromRgb(100, 200, 255);
-    public Color RegionTitleColor { get; set; } = Color.FromRgb(200, 210, 230);
-    public Color ItemCountColor { get; set; } = Color.FromRgb(255, 220, 100);
+    public Color BackgroundColor { get; set; } = Color.FromRgb(245, 247, 250);
+    public Color CardColor { get; set; } = Color.FromRgb(255, 255, 255);
+    public Color CardBorderColor { get; set; } = Color.FromRgb(220, 225, 235);
+    public Color CardShadowColor { get; set; } = Color.FromRgba(0, 0, 0, 25);
+    public Color SlotEmptyColor { get; set; } = Color.FromRgb(235, 238, 242);
+    public Color SlotBorderColor { get; set; } = Color.FromRgb(210, 215, 225);
+    public Color SlotFilledColor { get; set; } = Color.FromRgb(245, 247, 250);
+    public Color TitleColor { get; set; } = Color.FromRgb(50, 55, 70);
+    public Color RegionTitleColor { get; set; } = Color.FromRgb(80, 85, 100);
+    public Color ItemCountColor { get; set; } = Color.FromRgb(255, 255, 255);
+    public Color ItemCountBackgroundColor { get; set; } = Color.FromRgba(0, 0, 0, 170);
+
+    public Color MainInventoryHeaderColor { get; set; } = Color.FromRgb(100, 149, 237);
+    public Color CoinAmmoHeaderColor { get; set; } = Color.FromRgb(255, 193, 7);
+    public Color PiggyHeaderColor { get; set; } = Color.FromRgb(255, 112, 67);
+    public Color SafeHeaderColor { get; set; } = Color.FromRgb(81, 181, 165);
+    public Color VoidVaultHeaderColor { get; set; } = Color.FromRgb(126, 87, 194);
+    public Color ForgeHeaderColor { get; set; } = Color.FromRgb(120, 144, 156);
+    public Color LoadoutHeaderColor { get; set; } = Color.FromRgb(77, 182, 172);
+
+    public int ItemIconPadding { get; set; } = 8;
 
     public float TitleFontSize { get; set; } = 28;
     public float RegionTitleFontSize { get; set; } = 14;
@@ -135,52 +148,58 @@ public class InventoryGenerate
         image.Mutate(ctx =>
         {
             ctx.Fill(BackgroundColor);
-            var gradient = new RadialGradientBrush(
-                new PointF(width / 2, height / 2),
-                Math.Max(width, height) / 2f,
+
+            var gradientBrush = new LinearGradientBrush(
+                new PointF(0, 0),
+                new PointF(0, height),
                 GradientRepetitionMode.None,
-                new ColorStop(0, Color.FromRgb(55, 68, 90)),
-                new ColorStop(1, BackgroundColor));
-            ctx.Fill(gradient);
+                new ColorStop(0, Color.FromRgb(230, 235, 245)),
+                new ColorStop(0.4f, Color.FromRgb(240, 243, 248)),
+                new ColorStop(1, Color.FromRgb(245, 247, 250))
+            );
+            ctx.Fill(gradientBrush);
         });
     }
 
     private void DrawTitleCard(IImageProcessingContext ctx, InventoryBuilder builder, int canvasWidth, Font titleFont)
     {
-        string serverLabel = "服务器:";
-        string playerLabel = "玩家名:";
         string serverValue = builder.ServerName;
         string playerValue = builder.PlayerName;
 
-        var serverLabelSize = TextMeasurer.MeasureSize(serverLabel, new TextOptions(titleFont));
-        var playerLabelSize = TextMeasurer.MeasureSize(playerLabel, new TextOptions(titleFont));
-        var serverValueSize = TextMeasurer.MeasureSize(serverValue, new TextOptions(titleFont));
-        var playerValueSize = TextMeasurer.MeasureSize(playerValue, new TextOptions(titleFont));
+        FontFamily fontFamily = CardRenderer.GetFontFamily();
+        Font largeTitleFont = fontFamily.CreateFont(36, FontStyle.Bold);
+        Font smallFont = fontFamily.CreateFont(14);
+        Font infoFont = fontFamily.CreateFont(16);
 
-        int maxLabelWidth = (int)Math.Max(serverLabelSize.Width, playerLabelSize.Width);
-        int maxValueWidth = (int)Math.Max(serverValueSize.Width, playerValueSize.Width);
-        int cardWidth = maxLabelWidth + maxValueWidth + 50;
-        int cardHeight = 70;
+        var playerNameSize = TextMeasurer.MeasureSize(playerValue, new TextOptions(largeTitleFont));
+        var serverSize = TextMeasurer.MeasureSize(serverValue, new TextOptions(smallFont));
+        int cardWidth = Math.Max(Math.Max((int)playerNameSize.Width + 60, (int)serverSize.Width + 60), 320);
+        int cardHeight = 95;
         int cardX = (canvasWidth - cardWidth) / 2;
         int cardY = MarginY - 20;
 
-        ctx.DrawRoundedRectangle(cardX + 3, cardY + 3, cardWidth, cardHeight, CardCornerRadius, Color.FromRgba(0, 0, 0, 60));
+        ctx.DrawRoundedRectangle(cardX + 2, cardY + 2, cardWidth, cardHeight, CardCornerRadius, CardShadowColor);
         ctx.DrawRoundedRectangle(cardX, cardY, cardWidth, cardHeight, CardCornerRadius, CardColor);
         ctx.DrawRoundedRectanglePath(cardX, cardY, cardWidth, cardHeight, CardCornerRadius, 1, CardBorderColor);
 
-        int labelX = cardX + 20;
-        int serverValueX = cardX + cardWidth - 20 - (int)serverValueSize.Width;
-        int playerValueX = cardX + cardWidth - 20 - (int)playerValueSize.Width;
+        int headerHeight = 28;
+        Color headerColor = Color.FromRgb(70, 130, 200);
+        ctx.DrawRoundedRectangle(cardX, cardY, cardWidth, headerHeight, CardCornerRadius, headerColor);
+        ctx.Fill(headerColor, new RectangleF(cardX, cardY + headerHeight / 2, cardWidth, headerHeight / 2));
 
-        ctx.DrawText(serverLabel, titleFont, Color.FromRgb(0, 0, 0), new PointF(labelX + 2, cardY + 12));
-        ctx.DrawText(serverLabel, titleFont, TitleColor, new PointF(labelX, cardY + 10));
-        ctx.DrawText(serverValue, titleFont, Color.FromRgb(0, 0, 0), new PointF(serverValueX + 2, cardY + 12));
-        ctx.DrawText(serverValue, titleFont, RegionTitleColor, new PointF(serverValueX, cardY + 10));
+        string headerTitle = "玩家背包";
+        var headerTitleSize = TextMeasurer.MeasureSize(headerTitle, new TextOptions(infoFont));
+        float headerTitleX = cardX + (cardWidth - headerTitleSize.Width) / 2;
+        float headerTitleY = cardY + (headerHeight - headerTitleSize.Height) / 2 + 2;
+        ctx.DrawText(headerTitle, infoFont, Color.White, new PointF(headerTitleX, headerTitleY));
 
-        ctx.DrawText(playerLabel, titleFont, Color.FromRgb(0, 0, 0), new PointF(labelX + 2, cardY + 42));
-        ctx.DrawText(playerLabel, titleFont, TitleColor, new PointF(labelX, cardY + 40));
-        ctx.DrawText(playerValue, titleFont, Color.FromRgb(0, 0, 0), new PointF(playerValueX + 2, cardY + 42));
-        ctx.DrawText(playerValue, titleFont, RegionTitleColor, new PointF(playerValueX, cardY + 40));
+        float playerNameX = cardX + (cardWidth - playerNameSize.Width) / 2;
+        float playerNameY = cardY + headerHeight + 10;
+        ctx.DrawText(playerValue, largeTitleFont, Color.FromRgb(50, 55, 70), new PointF(playerNameX, playerNameY));
+
+        float serverX = cardX + (cardWidth - serverSize.Width) / 2;
+        float serverY = playerNameY + playerNameSize.Height + 6;
+        ctx.DrawText(serverValue, smallFont, Color.FromRgb(130, 140, 160), new PointF(serverX, serverY));
     }
 
     private void DrawContent(IImageProcessingContext ctx, InventoryBuilder builder, int canvasWidth)
@@ -192,7 +211,7 @@ public class InventoryGenerate
 
         DrawTitleCard(ctx, builder, canvasWidth, titleFont);
 
-        int currentY = MarginY + 90;
+        int currentY = MarginY + 130;
 
         currentY = DrawRow1(ctx, builder, regionTitleFont, countFont, canvasWidth, currentY);
 
@@ -205,7 +224,6 @@ public class InventoryGenerate
         currentY += RegionGapY;
         DrawRow4(ctx, builder, regionTitleFont, countFont, canvasWidth, currentY);
 
-        // 绘制签名
         DrawSignature(ctx, canvasWidth);
     }
 
@@ -219,7 +237,7 @@ public class InventoryGenerate
         float signatureX = (canvasWidth - signatureSize.Width) / 2;
         float signatureY = _canvasHeight - 20;
 
-        ctx.DrawText(signature, signatureFont, Color.FromRgb(148, 163, 184), new PointF(signatureX, signatureY));
+        ctx.DrawText(signature, signatureFont, Color.FromRgb(160, 165, 180), new PointF(signatureX, signatureY));
     }
 
     private int DrawRow1(IImageProcessingContext ctx, InventoryBuilder builder, Font titleFont, Font countFont, int canvasWidth, int y)
@@ -235,7 +253,7 @@ public class InventoryGenerate
         int totalWidth = mainWidth + RegionGapX + coinWidth;
         int startX = (canvasWidth - totalWidth) / 2;
 
-        DrawInventoryCard(ctx, startX, y, mainWidth, mainHeight, "主背包", titleFont);
+        DrawInventoryCard(ctx, startX, y, mainWidth, mainHeight, "主背包", titleFont, MainInventoryHeaderColor);
         for (int i = 0; i < 50 && i < builder.Inventory.Count; i++)
         {
             int row = i / 10, col = i % 10;
@@ -250,7 +268,7 @@ public class InventoryGenerate
             coinAmmoHeight = coinHeight + SlotSize + SlotSpacing + 30;
         }
 
-        DrawInventoryCard(ctx, coinX, y, coinWidth, coinAmmoHeight, "钱币 / 弹药", titleFont);
+        DrawInventoryCard(ctx, coinX, y, coinWidth, coinAmmoHeight, "钱币 / 弹药", titleFont, CoinAmmoHeaderColor);
 
         for (int i = 0; i < 8 && i + 50 < builder.Inventory.Count; i++)
         {
@@ -297,7 +315,7 @@ public class InventoryGenerate
 
         if (builder.Piggy.Count > 0)
         {
-            DrawInventoryCard(ctx, startX, y, storageWidth, storageHeight, "猪猪储钱罐", titleFont);
+            DrawInventoryCard(ctx, startX, y, storageWidth, storageHeight, "猪猪储钱罐", titleFont, PiggyHeaderColor);
             for (int i = 0; i < builder.Piggy.Count && i < 40; i++)
             {
                 int row = i / 10, col = i % 10;
@@ -308,7 +326,7 @@ public class InventoryGenerate
         int safeX = startX + storageWidth + RegionGapX;
         if (builder.Safe.Count > 0)
         {
-            DrawInventoryCard(ctx, safeX, y, storageWidth, storageHeight, "保险箱", titleFont);
+            DrawInventoryCard(ctx, safeX, y, storageWidth, storageHeight, "保险箱", titleFont, SafeHeaderColor);
             for (int i = 0; i < builder.Safe.Count && i < 40; i++)
             {
                 int row = i / 10, col = i % 10;
@@ -346,7 +364,7 @@ public class InventoryGenerate
 
         if (builder.VoidVault.Count > 0)
         {
-            DrawInventoryCard(ctx, startX, y, storageWidth, storageHeight, "虚空宝库", titleFont);
+            DrawInventoryCard(ctx, startX, y, storageWidth, storageHeight, "虚空宝库", titleFont, VoidVaultHeaderColor);
             for (int i = 0; i < builder.VoidVault.Count && i < 40; i++)
             {
                 int row = i / 10, col = i % 10;
@@ -357,7 +375,7 @@ public class InventoryGenerate
         int forgeX = startX + storageWidth + RegionGapX;
         if (builder.Forge.Count > 0)
         {
-            DrawInventoryCard(ctx, forgeX, y, storageWidth, storageHeight, "护卫熔炉", titleFont);
+            DrawInventoryCard(ctx, forgeX, y, storageWidth, storageHeight, "护卫熔炉", titleFont, ForgeHeaderColor);
             for (int i = 0; i < builder.Forge.Count && i < 40; i++)
             {
                 int row = i / 10, col = i % 10;
@@ -400,7 +418,7 @@ public class InventoryGenerate
             var loadout = builder.Loadouts[i];
             int loadoutX = startX + i * (loadoutWidth + 220);
 
-            DrawInventoryCard(ctx, loadoutX, y, loadoutWidth, loadoutHeight, $"套装 {i + 1}", titleFont);
+            DrawInventoryCard(ctx, loadoutX, y, loadoutWidth, loadoutHeight, $"套装 {i + 1}", titleFont, LoadoutHeaderColor);
 
             var equipItems = builder.MiscEquip.Concat(builder.MiscDye).ToList();
             for (int j = 0; j < equipItems.Count && j < 10; j++)
@@ -443,26 +461,41 @@ public class InventoryGenerate
         }
     }
 
-    private void DrawInventoryCard(IImageProcessingContext ctx, int x, int y, int width, int height, string title, Font titleFont)
+    private void DrawInventoryCard(IImageProcessingContext ctx, int x, int y, int width, int height, string title, Font titleFont, Color? headerColor = null)
     {
         int cardWidth = width + CardPadding * 2;
         int cardHeight = height + CardPadding * 2 + 20;
         int cardX = x - CardPadding;
         int cardY = y - CardPadding - 20;
+        int headerHeight = 24;
 
-        ctx.DrawRoundedRectangle(cardX + 2, cardY + 2, cardWidth, cardHeight, CardCornerRadius, Color.FromRgba(0, 0, 0, 50));
+        ctx.DrawRoundedRectangle(cardX + 2, cardY + 2, cardWidth, cardHeight, CardCornerRadius, CardShadowColor);
         ctx.DrawRoundedRectangle(cardX, cardY, cardWidth, cardHeight, CardCornerRadius, CardColor);
+
+        if (headerColor.HasValue)
+        {
+            ctx.DrawRoundedRectangle(cardX, cardY, cardWidth, headerHeight, CardCornerRadius, headerColor.Value);
+            ctx.Fill(headerColor.Value, new RectangleF(cardX, cardY + headerHeight / 2, cardWidth, headerHeight / 2));
+        }
+
         ctx.DrawRoundedRectanglePath(cardX, cardY, cardWidth, cardHeight, CardCornerRadius, 1, CardBorderColor);
 
         var titleSize = TextMeasurer.MeasureSize(title, new TextOptions(titleFont));
-        float titleX = x + (width - titleSize.Width) / 2;
-        ctx.DrawText(title, titleFont, RegionTitleColor, new PointF(titleX, y - 16));
+        float titleX = cardX + (cardWidth - titleSize.Width) / 2;
+        float titleY = cardY + (headerHeight - titleSize.Height) / 2 + 2;
+        Color titleTextColor = headerColor.HasValue ? Color.White : RegionTitleColor;
+        ctx.DrawText(title, titleFont, titleTextColor, new PointF(titleX, titleY));
     }
 
     private void DrawSlot(IImageProcessingContext ctx, ItemSlot item, int x, int y, Font countFont)
     {
-        Color slotColor = item.IsEmpty ? SlotEmptyColor : Color.FromRgb(48, 48, 68);
+        Color slotColor = item.IsEmpty ? SlotEmptyColor : SlotFilledColor;
         ctx.DrawRoundedRectangle(x, y, SlotSize, SlotSize, 4, slotColor);
+
+        if (item.IsEmpty)
+        {
+            ctx.DrawRoundedRectanglePath(x + 1, y + 1, SlotSize - 2, SlotSize - 2, 3, 1, Color.FromRgb(225, 228, 232));
+        }
         ctx.DrawRoundedRectanglePath(x, y, SlotSize, SlotSize, 4, 1, SlotBorderColor);
 
         if (!item.IsEmpty)
@@ -479,7 +512,7 @@ public class InventoryGenerate
             var countSize = TextMeasurer.MeasureSize(countText, new TextOptions(countFont));
             float countX = x + SlotSize - countSize.Width - 3;
             float countY = y + SlotSize - countSize.Height - 2;
-            ctx.Fill(Color.FromRgba(0, 0, 0, 140), new RectangleF(countX - 2, countY - 1, countSize.Width + 4, countSize.Height + 2));
+            ctx.Fill(ItemCountBackgroundColor, new RectangleF(countX - 2, countY - 1, countSize.Width + 4, countSize.Height + 2));
             ctx.DrawText(countText, countFont, ItemCountColor, new PointF(countX, countY));
         }
     }
@@ -494,8 +527,7 @@ public class InventoryGenerate
         try
         {
             using Image<Rgba32> itemImage = Image.Load<Rgba32>(itemPath);
-            int padding = 2;
-            int maxIconSize = SlotSize - (padding * 2);
+            int maxIconSize = SlotSize - (ItemIconPadding * 2);
 
             float scale = Math.Min((float)maxIconSize / itemImage.Width, (float)maxIconSize / itemImage.Height);
             int drawWidth = (int)(itemImage.Width * scale);

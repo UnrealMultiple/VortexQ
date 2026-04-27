@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -14,21 +14,12 @@
 		</Content>
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Content Remove="Resources\Templates\RegisterEmail.html" />
-	</ItemGroup>
-
   <ItemGroup>
     <None Remove="Resources\appsettings.jsonc" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\appsettings.jsonc" />
-    <EmbeddedResource Include="Resources\Templates\RegisterEmail.html" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="Command\CommandArgs.cs" />
   </ItemGroup>
 
   <ItemGroup>

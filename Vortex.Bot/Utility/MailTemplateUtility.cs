@@ -6,7 +6,7 @@ public static class MailTemplateUtility
 {
     private static readonly string TemplatesBasePath = Path.Combine(AppContext.BaseDirectory, "Resources", "Templates");
 
-    private static readonly Dictionary<string, string> TemplateCache = new();
+    private static readonly Dictionary<string, string> TemplateCache = [];
 
     public static string GetTemplate(string templateName)
     {

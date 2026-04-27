@@ -14,7 +14,7 @@ internal class ImageUtility
     public static readonly ImageUtility Instance = new();
     private ImageUtility()
     {
-        FontCollection fc = new FontCollection();
+        var fc = new FontCollection();
         FontFamily = fc.Add("Resources/Font/simhei.ttf");
     }
 
