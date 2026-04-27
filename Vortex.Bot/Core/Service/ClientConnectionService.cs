@@ -6,7 +6,7 @@ using Vortex.Protocol.Packets;
 
 namespace Vortex.Bot.Core.Service;
 
-public class ClientConnectionService(ILogger<ClientConnectionService> logger)
+public partial class ClientConnectionService(ILogger<ClientConnectionService> logger)
 {
     private readonly ILogger<ClientConnectionService> _logger = logger;
     private readonly ConcurrentDictionary<Guid, ClientConnection> _clientsById = new();
@@ -33,9 +33,7 @@ public class ClientConnectionService(ILogger<ClientConnectionService> logger)
         _clientsById[packet.ClientId] = client;
         _sessionToClientId[sessionId] = packet.ClientId;
 
-        _logger.LogInformation(
-            "[ClientManager] Registered: {ClientName} ({ClientId}), Session: {SessionId}, Endpoint: {Endpoint}",
-            packet.ClientName, packet.ClientId, sessionId, endpoint);
+        _logger.LogClientRegistered(packet.ClientName, packet.ClientId, sessionId, endpoint);
 
         OnClientConnected?.Invoke(client);
         return client;
@@ -48,9 +46,7 @@ public class ClientConnectionService(ILogger<ClientConnectionService> logger)
 
         _sessionToClientId.TryRemove(client.SessionId, out _);
 
-        _logger.LogInformation(
-            "[ClientManager] Removed: {ClientName} ({ClientId})",
-            client.ClientName, client.ClientId);
+        _logger.LogClientRemoved(client.ClientName, client.ClientId);
 
         try
         {
@@ -92,4 +88,12 @@ public class ClientConnectionService(ILogger<ClientConnectionService> logger)
             await RemoveClientAsync(clientId);
         }
     }
+}
+
+public static partial class ClientConnectionServiceLoggerExtension
+{
+    [LoggerMessage(LogLevel.Information, "Client connected: {clientName} (ID: {clientId}, Session: {sessionId}, Endpoint: {endpoint})")]
+    public static partial void LogClientRegistered(this ILogger<ClientConnectionService> logger, string clientName, Guid clientId, int sessionId, string endpoint);
+    [LoggerMessage(LogLevel.Information, "Client disconnected: {clientName} (ID: {clientId})")]
+    public static partial void LogClientRemoved(this ILogger<ClientConnectionService> logger, string clientName, Guid clientId);
 }

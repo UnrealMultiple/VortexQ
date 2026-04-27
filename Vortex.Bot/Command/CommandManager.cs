@@ -27,7 +27,7 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to register command class {Type}", type.FullName);
+                _logger.LogFailedToRegisterCommand(type.FullName, ex);
             }
         }
     }
@@ -44,13 +44,12 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
             if (_commands.TryGetValue(key, out CommandRegistration? existing))
             {
                 existing.Types |= commandTypes;
-                _logger.LogInformation("Extended command '{Command}' to type: {NewType} (now supports: {AllTypes})",
-                    name, commandTypes, existing.Types);
+                _logger.LogExtendedCommand(name, commandTypes, existing.Types);
             }
             else
             {
                 _commands[key] = new CommandRegistration(tree, commandTypes, names);
-                _logger.LogInformation("Registered command '{Command}' with types: {Types}", name, commandTypes);
+                _logger.LogRegisteredCommand(name, commandTypes);
             }
         }
     }
@@ -180,14 +179,13 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
 
         if (!_commands.TryGetValue(cmdName, out CommandRegistration? reg))
         {
-            _logger.LogDebug("Command not found: {Command}", cmdName);
+            _logger.LogCommandNotFound(cmdName);
             return false;
         }
 
         if (!reg.Types.Supports(requiredType))
         {
-            _logger.LogDebug("Command '{Command}' does not support {Type} (supports: {Supported})",
-                cmdName, requiredType, reg.Types);
+            _logger.LogCommandTypeNotSupported(cmdName, requiredType, reg.Types);
             return false;
         }
 
@@ -199,12 +197,12 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
     {
         if (await CommandEvents.TriggerCommandExecuting(args, cmdName))
         {
-            _logger.LogDebug("Command '{Command}' was intercepted by event", cmdName);
+            _logger.LogCommandIntercepted(cmdName);
             return true;
         }
         return false;
     }
-
+        
     private static ServerCommandArgs CreateServerArgs(
         VortexContext context,
         List<string> argsParams,
@@ -219,4 +217,25 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
             CommandPrefix = config.EnablePrefix ? config.Prefix : string.Empty
         };
     }
+}
+
+public static partial class CommandManagerLoggerExtension
+{
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Failed to register command class {Type}")]
+    public static partial void LogFailedToRegisterCommand(this ILogger<CommandManager> logger, string? type, Exception ex);
+
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Information, "Extended command '{Command}' to type: {NewType} (now supports: {AllTypes})")]
+    public static partial void LogExtendedCommand(this ILogger<CommandManager> logger, string command, CommandType newType, CommandType allTypes);
+
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Information, "Registered command '{Command}' with types: {Types}")]
+    public static partial void LogRegisteredCommand(this ILogger<CommandManager> logger, string command, CommandType types);
+
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Debug, "Command not found: {Command}")]
+    public static partial void LogCommandNotFound(this ILogger<CommandManager> logger, string command);
+
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Debug, "Command '{Command}' does not support {Type} (supports: {Supported})")]
+    public static partial void LogCommandTypeNotSupported(this ILogger<CommandManager> logger, string command, CommandType type, CommandType supported);
+
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Debug, "Command '{Command}' was intercepted by event")]
+    public static partial void LogCommandIntercepted(this ILogger<CommandManager> logger, string command);
 }

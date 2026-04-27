@@ -29,5 +29,5 @@ internal class ImageUtility
         return avatar;
     }
 
-    public static string GetRandOneBotBackground() => Directory.GetFiles("Resources/OneBotImage").Rand();
+    public static string GetRandOneBotBackground() => Directory.GetFiles("Resources/VortexImage").Rand();
 }

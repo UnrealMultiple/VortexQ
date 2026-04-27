@@ -84,7 +84,7 @@ public class PacketSerializer
 
         if (IsCollectionType(prop.PropertyType))
         {
-            Action<BinaryWriter, object> serialize = (bw, o) =>
+            void serialize(BinaryWriter bw, object o)
             {
                 var value = prop.GetValue(o);
                 if (value == null)
@@ -94,12 +94,12 @@ public class PacketSerializer
                 }
                 var valueSerializer = RequestFieldSerializer(value.GetType(), null);
                 valueSerializer.Write(bw, value);
-            };
+            }
 
-            Action<object, BinaryReader> deserialize = (o, br) =>
+            void deserialize(object o, BinaryReader br)
             {
                 prop.SetValue(o, serializer.Read(br));
-            };
+            }
 
             return (serialize, deserialize);
         }

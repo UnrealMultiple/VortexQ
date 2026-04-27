@@ -48,9 +48,9 @@ public static class ServerListCommand
                 server.Config.Version,
                 server.Config.Describe,
                 !isOnline ? "离线" : $"运行:{status!.RunTime:dd\\.hh\\:mm\\:ss}",
-                !isOnline ? "-" : status.WorldName,
-                !isOnline ? "-" : status.WorldSeed,
-                !isOnline ? "-" : $"{status.WorldWidth}x{status.WorldHeight}"
+                !isOnline ? "-" : status?.WorldName ?? "",
+                !isOnline ? "-" : status?.WorldSeed ?? "",
+                !isOnline ? "-" : $"{status?.WorldWidth ?? 0}x{status?.WorldHeight ?? 0}"
             );
         }
 

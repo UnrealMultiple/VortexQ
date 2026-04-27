@@ -11,7 +11,7 @@ using Vortex.Protocol.Serialization;
 
 namespace Vortex.Bot.Core.Service;
 
-public class VortexSocketService(
+public partial class VortexSocketService(
     ILogger<VortexSocketService> logger,
     IConfiguration configuration,
     IServiceProvider serviceProvider,
@@ -54,18 +54,16 @@ public class VortexSocketService(
     {
         if (!_config.Enabled)
         {
-            _logger.LogInformation("[VortexServer] Server is disabled in configuration");
+            _logger.LogServerDisabled();
             return;
         }
 
         _handlerManager.RegisterHandlersFromAssembly(System.Reflection.Assembly.GetExecutingAssembly());
-        _logger.LogInformation("[VortexServer] Registered {HandlerCount} packet handlers", _handlerManager.HandlerCount);
-
         _listener = new TcpListener(IPAddress.Any, _config.Port);
         _listener.Start();
         _isRunning = true;
 
-        _logger.LogInformation("[VortexServer] Started on port {Port}", _config.Port);
+        _logger.LogServerStarted(_config.Port);
 
         try
         {
@@ -77,7 +75,7 @@ public class VortexSocketService(
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("[VortexServer] Stopping...");
+            _logger.LogServerStopping();
         }
         finally
         {
@@ -90,7 +88,7 @@ public class VortexSocketService(
     private async Task HandleClientAsync(TcpClient tcpClient, CancellationToken cancellationToken)
     {
         var endpoint = tcpClient.Client.RemoteEndPoint?.ToString() ?? "Unknown";
-        _logger.LogInformation("[VortexServer] Client {Endpoint} connected", endpoint);
+        _logger.LogClientConnected(endpoint);
 
         using var stream = tcpClient.GetStream();
         ClientConnection? client = null;
@@ -100,24 +98,24 @@ public class VortexSocketService(
             var authPacket = await ReadPacketAsync(stream, cancellationToken);
             if (authPacket is not ClientAuthPacket auth)
             {
-                _logger.LogWarning("[VortexServer] Client {Endpoint} did not send auth packet first", endpoint);
+                _logger.LogAuthPacketMissing(endpoint);
                 await SendResponseAsync(stream, new ClientAuthResponsePacket { Success = false, Message = "Auth required first" }, cancellationToken);
                 return;
             }
 
             if (auth.Token != _config.Token)
             {
-                _logger.LogWarning("[VortexServer] Client {Endpoint} auth failed: invalid token", endpoint);
+                _logger.LogAuthFailed(endpoint);
                 await SendResponseAsync(stream, new ClientAuthResponsePacket { Success = false, Message = "Invalid token" }, cancellationToken);
                 return;
             }
             await SendResponseAsync(stream, new ClientAuthResponsePacket { Success = true, Message = "Auth success" }, cancellationToken);
-            _logger.LogInformation("[VortexServer] Client {Endpoint} authenticated successfully", endpoint);
+            _logger.LogAuthSuccess(endpoint);
 
             var identityPacket = await ReadPacketAsync(stream, cancellationToken);
             if (identityPacket is not ClientIdentityPacket identity)
             {
-                _logger.LogWarning("[VortexServer] Client {Endpoint} did not send identity packet", endpoint);
+                _logger.LogIdentityPacketMissing(endpoint);
                 return;
             }
 
@@ -134,7 +132,7 @@ public class VortexSocketService(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogError(ex, "[VortexServer] Client {ClientId} error: {Message}", client?.ClientId, ex.Message);
+            _logger.LogClientError(client?.ClientId, ex.Message, ex);
         }
         finally
         {
@@ -147,7 +145,7 @@ public class VortexSocketService(
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "[VortexServer] Failed to unregister client from TerrariaServerManager");
+                    _logger.LogUnregisterClientError(ex.Message);
                 }
 
                 await _connectionManager.RemoveClientAsync(client.ClientId);
@@ -177,11 +175,11 @@ public class VortexSocketService(
 
         if (totalRead < length)
         {
-            _logger.LogError("[VortexServer] 数据读取不完整: {TotalRead}/{Length}", totalRead, length);
+            _logger.LogIncompleteDataRead(totalRead, length);
             return null;
         }
 
-        _logger.LogDebug("[VortexServer] 收到数据: {Data}", BitConverter.ToString(data));
+        _logger.LogDataReceived(BitConverter.ToString(data));
 
         using var ms = new MemoryStream(data);
         using var br = new BinaryReader(ms);
@@ -191,7 +189,7 @@ public class VortexSocketService(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[VortexServer] 反序列化失败");
+            _logger.LogDeserializationError(ex);
             throw;
         }
     }
@@ -199,9 +197,7 @@ public class VortexSocketService(
     private ClientConnection HandleIdentity(ClientIdentityPacket packet, TcpClient tcpClient, string endpoint)
     {
         var client = _connectionManager.RegisterClient(packet, tcpClient, endpoint);
-        _logger.LogInformation(
-            "[VortexServer] Client registered: {ClientName} ({ClientId})",
-            client.ClientName, client.ClientId);
+        _logger.LogClientRegistered(client.ClientName, client.ClientId);
         try
         {
             var serverManager = Services.GetService(typeof(TerrariaServerService)) as TerrariaServerService;
@@ -209,7 +205,7 @@ public class VortexSocketService(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[VortexServer] Failed to register client to TerrariaServerManager");
+            _logger.LogRegisterClientError(ex);
         }
 
         return client;
@@ -240,9 +236,7 @@ public class VortexSocketService(
             SenderConnection = client
         };
 
-        _logger.LogInformation(
-            "[VortexServer] Received {PacketID} from {ClientName}",
-            packet.PacketID, client.ClientName);
+        _logger.LogPacketReceived(packet.PacketID, client.ClientName);
 
         OnPacketReceived?.Invoke(client, packet);
 
@@ -251,9 +245,7 @@ public class VortexSocketService(
         if (response != null)
         {
             await SendResponseAsync(stream, response, cancellationToken);
-            _logger.LogInformation(
-                "[VortexServer] Sent {PacketID} to {ClientName}",
-                response.PacketID, client.ClientName);
+            _logger.LogPacketSent(response.PacketID, client.ClientName);
         }
     }
 
@@ -270,7 +262,7 @@ public class VortexSocketService(
         var client = _connectionManager.GetClient(clientId);
         if (client == null)
         {
-            _logger.LogWarning("[VortexServer] Client {ClientId} not found", clientId);
+            _logger.LogClientNotFound(clientId);
             return false;
         }
 
@@ -282,7 +274,7 @@ public class VortexSocketService(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[VortexServer] Failed to send to {ClientId}", clientId);
+            _logger.LogSendToClientError(clientId, ex);
             return false;
         }
     }
@@ -307,7 +299,7 @@ public class VortexSocketService(
     {
         if (!_connectionManager.IsOnline(clientId))
         {
-            _logger.LogWarning("[VortexServer] Client {ClientId} is offline", clientId);
+            _logger.LogClientOffline(clientId);
             return null;
         }
 
@@ -340,7 +332,7 @@ public class VortexSocketService(
         }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("[VortexServer] Request timeout for {ClientId}", clientId);
+            _logger.LogRequestTimeout(clientId);
             OnPacketReceived -= handler;
             return null;
         }
@@ -348,3 +340,70 @@ public class VortexSocketService(
 
     #endregion
 }
+
+public static partial class VortexSocketServiceLoggerExtension
+{
+    [LoggerMessage(LogLevel.Information, "Vortex Socket Server started on port {port}")]
+    public static partial void LogServerStarted(this ILogger<VortexSocketService> logger, int port);
+
+    [LoggerMessage(LogLevel.Information, "Vortex Socket Server is disabled in configuration")]
+    public static partial void LogServerDisabled(this ILogger<VortexSocketService> logger);
+
+    [LoggerMessage(LogLevel.Information, "Vortex Socket Server is stopping...")]
+    public static partial void LogServerStopping(this ILogger<VortexSocketService> logger);
+
+    [LoggerMessage(LogLevel.Information, "Client connected from {endpoint}")]
+    public static partial void LogClientConnected(this ILogger<VortexSocketService> logger, string endpoint);
+
+    [LoggerMessage(LogLevel.Warning, "Auth packet missing from {endpoint}")]
+    public static partial void LogAuthPacketMissing(this ILogger<VortexSocketService> logger, string endpoint);
+
+    [LoggerMessage(LogLevel.Warning, "Authentication failed for {endpoint}")]
+    public static partial void LogAuthFailed(this ILogger<VortexSocketService> logger, string endpoint);
+
+    [LoggerMessage(LogLevel.Information, "Authentication succeeded for {endpoint}")]
+    public static partial void LogAuthSuccess(this ILogger<VortexSocketService> logger, string endpoint);
+
+    [LoggerMessage(LogLevel.Warning, "Identity packet missing from {endpoint}")]
+    public static partial void LogIdentityPacketMissing(this ILogger<VortexSocketService> logger, string endpoint);
+
+    [LoggerMessage(LogLevel.Error, "Error with client {clientId}: {message}")]
+    public static partial void LogClientError(this ILogger<VortexSocketService> logger, Guid? clientId, string message, Exception ex);
+
+    [LoggerMessage(LogLevel.Error, "Error unregistering client: {message}")]
+    public static partial void LogUnregisterClientError(this ILogger<VortexSocketService> logger, string message);
+
+    [LoggerMessage(LogLevel.Warning, "Incomplete data read: expected {expected} bytes but got {actual} bytes")]
+    public static partial void LogIncompleteDataRead(this ILogger<VortexSocketService> logger, int actual, int expected);
+
+    [LoggerMessage(LogLevel.Debug, "Data received: {data}")]
+    public static partial void LogDataReceived(this ILogger<VortexSocketService> logger, string data);
+
+    [LoggerMessage(LogLevel.Error, "[VortexServer] 反序列化失败")]
+    public static partial void LogDeserializationError(this ILogger<VortexSocketService> logger, Exception ex);
+
+    [LoggerMessage(LogLevel.Information, "[VortexServer] Client registered: {ClientName} ({ClientId})")]
+    public static partial void LogClientRegistered(this ILogger<VortexSocketService> logger, string clientName, Guid clientId);
+
+    [LoggerMessage(LogLevel.Error, "[VortexServer] Failed to register client to TerrariaServerManager")]
+    public static partial void LogRegisterClientError(this ILogger<VortexSocketService> logger, Exception ex);
+
+    [LoggerMessage(LogLevel.Information, "[VortexServer] Received {PacketID} from {ClientName}")]
+    public static partial void LogPacketReceived(this ILogger<VortexSocketService> logger, Protocol.Enums.PacketType packetID, string clientName);
+
+    [LoggerMessage(LogLevel.Information, "[VortexServer] Sent {PacketID} to {ClientName}")]
+    public static partial void LogPacketSent(this ILogger<VortexSocketService> logger, Protocol.Enums.PacketType packetID, string clientName);
+
+    [LoggerMessage(LogLevel.Warning, "[VortexServer] Client {ClientId} not found")]
+    public static partial void LogClientNotFound(this ILogger<VortexSocketService> logger, Guid clientId);
+
+    [LoggerMessage(LogLevel.Error, "[VortexServer] Failed to send to {ClientId}")]
+    public static partial void LogSendToClientError(this ILogger<VortexSocketService> logger, Guid clientId, Exception ex);
+
+    [LoggerMessage(LogLevel.Warning, "[VortexServer] Client {ClientId} is offline")]
+    public static partial void LogClientOffline(this ILogger<VortexSocketService> logger, Guid clientId);
+
+    [LoggerMessage(LogLevel.Warning, "[VortexServer] Request timeout for {ClientId}")]
+    public static partial void LogRequestTimeout(this ILogger<VortexSocketService> logger, Guid clientId);
+}
+

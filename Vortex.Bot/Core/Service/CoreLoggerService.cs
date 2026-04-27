@@ -1,4 +1,4 @@
-﻿using Lagrange.Core;
+using Lagrange.Core;
 using Lagrange.Core.Events.EventArgs;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -35,7 +35,7 @@ public partial class CoreLoggerService(ILogger<CoreLoggerService> logger, IOptio
     {
         _bot.Config.LogLevel = (CoreLogLevel)options.GetDefaultLogLevel();
 
-        _logger.LogCoreMinimumLogLevelReloaded(_bot.Config.LogLevel);
+        LogCoreMinimumLogLevelReloaded(_bot.Config.LogLevel);
     }
 
     private void HandleLog(BotContext bot, BotLogEvent @event)
@@ -70,15 +70,12 @@ public partial class CoreLoggerService(ILogger<CoreLoggerService> logger, IOptio
         GC.SuppressFinalize(this);
     }
 
+    [LoggerMessage(MSLogLevel.Debug, "Core minimum log level reloaded to {level}")]
+    private partial void LogCoreMinimumLogLevelReloaded(CoreLogLevel level);
+
     private static partial class LoggerUtility
     {
         [LoggerMessage("{message}")]
         public static partial void LogBotMessage(ILogger logger, MSLogLevel level, string message, Exception? exception);
     }
-}
-
-public static partial class CoreLoggerServiceLoggerExtension
-{
-    [LoggerMessage(MSLogLevel.Debug, "Core minimum log level reloaded to {level}")]
-    public static partial void LogCoreMinimumLogLevelReloaded(this ILogger<CoreLoggerService> logger, CoreLogLevel level);
 }

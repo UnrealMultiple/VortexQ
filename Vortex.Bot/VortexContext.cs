@@ -11,7 +11,7 @@ using Vortex.Bot.Utility;
 
 namespace Vortex.Bot;
 
-public class VortexContext(
+public partial class VortexContext(
     BotContext botContext,
     IDatabaseService database,
     CommandManager commandManager,
@@ -33,20 +33,20 @@ public class VortexContext(
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("VortexContext 已启动");
+        _logger.LogVortexContextStarted();
 
         DefaultGroup.Initialize();
-        _logger.LogInformation("默认权限组已初始化");
+        _logger.LogDefaultGroupInitialized();
 
         SystemMonitor = new SystemMonitor();
-        _logger.LogInformation("系统监控已启动");
+        _logger.LogSystemMonitorStarted();
 
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("VortexContext 正在停止...");
+        _logger.LogVortexContextStopping();
 
         SystemMonitor?.Dispose();
 
@@ -57,4 +57,16 @@ public class VortexContext(
 
         return Task.CompletedTask;
     }
+}
+
+public static partial class VortexContextLoggerExtension
+{
+    [LoggerMessage(LogLevel.Information, "VortexContext started")]
+    public static partial void LogVortexContextStarted(this ILogger<VortexContext> logger);
+    [LoggerMessage(LogLevel.Information, "DefaultGroup initialized")]
+    public static partial void LogDefaultGroupInitialized(this ILogger<VortexContext> logger);
+    [LoggerMessage(LogLevel.Information, "SystemMonitor started")]
+    public static partial void LogSystemMonitorStarted(this ILogger<VortexContext> logger);
+    [LoggerMessage(LogLevel.Information, "VortexContext stopping")]
+    public static partial void LogVortexContextStopping(this ILogger<VortexContext> logger);
 }

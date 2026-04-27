@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 
 namespace Vortex.Bot.Plugins;
 
-public sealed class PluginManager : IDisposable
+public sealed partial class PluginManager : IDisposable
 {
     private readonly ILogger<PluginManager> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -34,13 +34,13 @@ public sealed class PluginManager : IDisposable
         if (!Directory.Exists(_pluginsDirectory))
         {
             Directory.CreateDirectory(_pluginsDirectory);
-            _logger.LogInformation("Created plugins directory: {Path}", _pluginsDirectory);
+            _logger.LogPluginsDirectoryCreated(_pluginsDirectory);
         }
     }
 
     public void LoadAllPlugins()
     {
-        _logger.LogInformation("Loading plugins...");
+        _logger.LogLoadingPlugins();
 
         var pluginDirs = Directory.GetDirectories(_pluginsDirectory);
         var loadedPlugins = new List<(PluginInfo Info, int Order)>();
@@ -54,18 +54,18 @@ public sealed class PluginManager : IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to load plugin: {Directory}", pluginDir);
+                _logger.LogFailedToLoadPlugin(pluginDir, ex);
             }
         }
 
         InitializePlugins(loadedPlugins);
-        _logger.LogInformation("Plugin loading completed, loaded {Count} plugins", _plugins.Count);
+        _logger.LogPluginsLoaded(_plugins.Count);
     }
 
     private List<PluginInfo> LoadPluginFromDirectory(string pluginDirectory)
     {
         var dirName = Path.GetFileName(pluginDirectory);
-        _logger.LogDebug("Loading plugin directory: {Directory}", dirName);
+        _logger.LogLoadingPluginDirectory(dirName);
 
         var loadContext = new PluginLoadContext(pluginDirectory, $"PluginContext_{dirName}_{Guid.NewGuid():N}");
         _loadContexts.Add(loadContext);
@@ -74,7 +74,7 @@ public sealed class PluginManager : IDisposable
 
         if (loadContext.LoadedAssemblies.Count == 0)
         {
-            _logger.LogWarning("No valid DLL files found in plugin directory: {Directory}", dirName);
+            _logger.LogNoValidDllFiles(dirName);
             return [];
         }
 
@@ -85,7 +85,7 @@ public sealed class PluginManager : IDisposable
         {
             if (_plugins.ContainsKey(plugin.Name))
             {
-                _logger.LogWarning("Plugin {PluginName} already exists, skipping", plugin.Name);
+                _logger.LogPluginAlreadyExists(plugin.Name);
                 continue;
             }
 
@@ -100,8 +100,7 @@ public sealed class PluginManager : IDisposable
             _plugins[plugin.Name] = pluginInfo;
             result.Add(pluginInfo);
 
-            _logger.LogInformation("Plugin [{PluginName}] v{Version} by {Author} loaded",
-                plugin.Name, plugin.Version, plugin.Author);
+            _logger.LogPluginLoaded(plugin.Name, plugin.Version.ToString(), plugin.Author);
         }
 
         return result;
@@ -127,7 +126,7 @@ public sealed class PluginManager : IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to initialize plugin [{PluginName}]", pluginInfo.Plugin.Name);
+                _logger.LogFailedToInitializePlugin(pluginInfo.Plugin.Name, ex);
             }
         }
     }
@@ -136,7 +135,7 @@ public sealed class PluginManager : IDisposable
     {
         if (!_plugins.TryRemove(pluginName, out var pluginInfo))
         {
-            _logger.LogWarning("Plugin {PluginName} not found, cannot unload", pluginName);
+            _logger.LogPluginNotFoundForUnload(pluginName);
             return false;
         }
 
@@ -148,12 +147,12 @@ public sealed class PluginManager : IDisposable
                 pluginInfo.Plugin.Shutdown();
 
             pluginInfo.Plugin.Dispose();
-            _logger.LogInformation("Plugin [{PluginName}] unloaded", pluginName);
+            _logger.LogPluginUnloaded(pluginName);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error unloading plugin [{PluginName}]", pluginName);
+            _logger.LogErrorUnloadingPlugin(pluginName, ex);
             return false;
         }
     }
@@ -162,7 +161,7 @@ public sealed class PluginManager : IDisposable
     {
         if (!_plugins.TryGetValue(pluginName, out var pluginInfo))
         {
-            _logger.LogWarning("Plugin {PluginName} not found, cannot reload", pluginName);
+            _logger.LogPluginNotFoundForReload(pluginName);
             return false;
         }
 
@@ -185,19 +184,19 @@ public sealed class PluginManager : IDisposable
                 newPluginInfo.IsInitialized = true;
             }
 
-            _logger.LogInformation("Plugin [{PluginName}] reloaded", pluginName);
+            _logger.LogPluginReloaded(pluginName);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to reload plugin [{PluginName}]", pluginName);
+            _logger.LogFailedToReloadPlugin(pluginName, ex);
             return false;
         }
     }
 
     public void ReloadAllPlugins()
     {
-        _logger.LogInformation("Reloading all plugins...");
+        _logger.LogReloadingAllPlugins();
 
         foreach (var pluginName in _plugins.Keys.ToList())
             UnloadPlugin(pluginName);
@@ -210,7 +209,7 @@ public sealed class PluginManager : IDisposable
 
         CollectGarbage();
         LoadAllPlugins();
-        _logger.LogInformation("All plugins reloaded");
+        _logger.LogAllPluginsReloaded();
     }
 
     public PluginInfo? GetPluginInfo(string pluginName)
@@ -225,7 +224,7 @@ public sealed class PluginManager : IDisposable
     {
         if (_disposed) return;
 
-        _logger.LogInformation("Unloading all plugins...");
+        _logger.LogUnloadingAllPlugins();
 
         foreach (var pluginName in _plugins.Keys.ToList())
             UnloadPlugin(pluginName);
@@ -239,7 +238,7 @@ public sealed class PluginManager : IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to unload plugin context");
+                _logger.LogFailedToUnloadPluginContext(ex);
             }
         }
 
@@ -248,7 +247,7 @@ public sealed class PluginManager : IDisposable
 
         _disposed = true;
         GC.SuppressFinalize(this);
-        _logger.LogInformation("All plugins unloaded");
+        _logger.LogAllPluginsUnloaded();
     }
 
     private static void CollectGarbage()
@@ -259,4 +258,67 @@ public sealed class PluginManager : IDisposable
     }
 
     private ILoggerFactory _loggerFactory => _serviceProvider.GetRequiredService<ILoggerFactory>();
+}
+
+public static partial class PluginManagerLoggerExtension
+{
+    [LoggerMessage(LogLevel.Information, "Created plugins directory: {Path}")]
+    public static partial void LogPluginsDirectoryCreated(this ILogger<PluginManager> logger, string path);
+
+    [LoggerMessage(LogLevel.Information, "Loading plugins...")]
+    public static partial void LogLoadingPlugins(this ILogger<PluginManager> logger);
+        
+    [LoggerMessage(LogLevel.Error, "Failed to load plugin: {Directory}")]
+    public static partial void LogFailedToLoadPlugin(this ILogger<PluginManager> logger, string directory, Exception ex);
+
+    [LoggerMessage(LogLevel.Debug, "Loading plugin directory: {Directory}")]
+    public static partial void LogLoadingPluginDirectory(this ILogger<PluginManager> logger, string directory);
+
+    [LoggerMessage(LogLevel.Warning, "No valid DLL files found in plugin directory: {Directory}")]
+    public static partial void LogNoValidDllFiles(this ILogger<PluginManager> logger, string directory);
+
+    [LoggerMessage(LogLevel.Warning, "Plugin {PluginName} already exists, skipping")]
+    public static partial void LogPluginAlreadyExists(this ILogger<PluginManager> logger, string pluginName);
+
+    [LoggerMessage(LogLevel.Information, "Plugin [{PluginName}] v{Version} by {Author} loaded")]
+    public static partial void LogPluginLoaded(this ILogger<PluginManager> logger, string pluginName, string version, string author);
+
+    [LoggerMessage(LogLevel.Error, "Failed to initialize plugin [{PluginName}]")]
+    public static partial void LogFailedToInitializePlugin(this ILogger<PluginManager> logger, string pluginName, Exception ex);
+
+    [LoggerMessage(LogLevel.Warning, "Plugin {PluginName} not found, cannot unload")]
+    public static partial void LogPluginNotFoundForUnload(this ILogger<PluginManager> logger, string pluginName);
+
+    [LoggerMessage(LogLevel.Information, "Plugin [{PluginName}] unloaded")]
+    public static partial void LogPluginUnloaded(this ILogger<PluginManager> logger, string pluginName);
+
+    [LoggerMessage(LogLevel.Error, "Error unloading plugin [{PluginName}]")]
+    public static partial void LogErrorUnloadingPlugin(this ILogger<PluginManager> logger, string pluginName, Exception ex);
+
+    [LoggerMessage(LogLevel.Warning, "Plugin {PluginName} not found, cannot reload")]
+    public static partial void LogPluginNotFoundForReload(this ILogger<PluginManager> logger, string pluginName);
+
+    [LoggerMessage(LogLevel.Information, "Plugin [{PluginName}] reloaded")]
+    public static partial void LogPluginReloaded(this ILogger<PluginManager> logger, string pluginName);
+
+    [LoggerMessage(LogLevel.Error, "Failed to reload plugin [{PluginName}]")]
+    public static partial void LogFailedToReloadPlugin(this ILogger<PluginManager> logger, string pluginName, Exception ex);
+
+    [LoggerMessage(LogLevel.Information, "Reloading all plugins...")]
+    public static partial void LogReloadingAllPlugins(this ILogger<PluginManager> logger);
+
+    [LoggerMessage(LogLevel.Information, "All plugins reloaded")]
+    public static partial void LogAllPluginsReloaded(this ILogger<PluginManager> logger);
+
+    [LoggerMessage(LogLevel.Information, "Unloading all plugins...")]
+    public static partial void LogUnloadingAllPlugins(this ILogger<PluginManager> logger);
+
+    [LoggerMessage(LogLevel.Error, "Failed to unload plugin context")]
+    public static partial void LogFailedToUnloadPluginContext(this ILogger<PluginManager> logger, Exception ex);
+
+    [LoggerMessage(LogLevel.Information, "All plugins unloaded")]
+    public static partial void LogAllPluginsUnloaded(this ILogger<PluginManager> logger);
+
+    [LoggerMessage(LogLevel.Information, "Plugin loading completed, loaded {Count} plugins")]
+    public static partial void LogPluginsLoaded(this ILogger<PluginManager> logger, int count);
 }

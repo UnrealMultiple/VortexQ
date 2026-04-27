@@ -7,7 +7,7 @@ using Vortex.Protocol.Interfaces;
 
 namespace Vortex.Bot.Core.Service;
 
-public class PacketHandlerService(
+public partial class PacketHandlerService(
     ILogger<PacketHandlerService> logger,
     IServiceProvider serviceProvider,
     VortexContext vortexContext)
@@ -37,7 +37,7 @@ public class PacketHandlerService(
             return null;
         };
 
-        _logger.LogInformation("[HandlerManager] Registered handler for {PacketType}", typeof(TRequest).Name);
+        _logger.LogHandlerRegistered(typeof(TRequest).Name);
     }
 
     public void RegisterHandler<TRequest, TResponse>(Func<TRequest, PacketRouteContext, Task<TResponse>> handler)
@@ -58,7 +58,7 @@ public class PacketHandlerService(
             return null;
         };
 
-        _logger.LogInformation("[HandlerManager] Registered handler for {PacketType}", typeof(TRequest).Name);
+        _logger.LogHandlerRegistered(typeof(TRequest).Name);
     }
 
     public void RegisterHandler<TRequest, TResponse>(RoutedRequestHandlerBase<TRequest, TResponse> handler)
@@ -81,7 +81,7 @@ public class PacketHandlerService(
             return Task.FromResult<IClientPacket?>(null);
         };
 
-        _logger.LogInformation("[HandlerManager] Registered handler for {PacketType}", typeof(TRequest).Name);
+        _logger.LogHandlerRegistered(typeof(TRequest).Name);
     }
 
     public void RegisterHandler<TRequest>(RoutedPushHandlerBase<TRequest> handler)
@@ -102,7 +102,7 @@ public class PacketHandlerService(
             return Task.FromResult<IClientPacket?>(null);
         };
 
-        _logger.LogInformation("[HandlerManager] Registered push handler for {PacketType}", typeof(TRequest).Name);
+        _logger.LogPushHandlerRegistered(typeof(TRequest).Name);
     }
 
     public void RegisterHandlersFromAssembly(System.Reflection.Assembly assembly)
@@ -195,7 +195,7 @@ public class PacketHandlerService(
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[HandlerManager] Error processing packet {PacketID}", packet.PacketID);
+                _logger.LogErrorProcessingPacket(packet.PacketID, ex.Message);
                 return null;
             }
         }
@@ -206,4 +206,14 @@ public class PacketHandlerService(
     public bool HasHandler(byte packetId) => _handlers.ContainsKey(packetId);
 
     public int HandlerCount => _handlers.Count;
+}
+
+public static partial class PacketHandlerServiceLoggerExtension
+{
+    [LoggerMessage(LogLevel.Information, "Registered handler for packet {packetName}")]
+    public static partial void LogHandlerRegistered(this ILogger<PacketHandlerService> logger, string packetName);
+    [LoggerMessage(LogLevel.Information, "Registered push handler for packet {packetName}")]
+    public static partial void LogPushHandlerRegistered(this ILogger<PacketHandlerService> logger, string packetName);
+    [LoggerMessage(LogLevel.Error, "Error processing packet {packetId}: {message}")]
+    public static partial void LogErrorProcessingPacket(this ILogger<PacketHandlerService> logger, Protocol.Enums.PacketType packetId, string message);
 }

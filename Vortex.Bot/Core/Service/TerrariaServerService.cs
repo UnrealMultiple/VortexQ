@@ -7,7 +7,7 @@ using Vortex.Protocol.Packets;
 
 namespace Vortex.Bot.Core.Service;
 
-public class TerrariaServerService
+public partial class TerrariaServerService
 {
     private readonly ILogger<TerrariaServerService> _logger;
     private readonly VortexSocketService _vortexServer;
@@ -32,7 +32,7 @@ public class TerrariaServerService
             }
         }
 
-        _logger.LogInformation("[TerrariaServerManager] 已加载 {Count} 个服务器", _servers.Count);
+        _logger.LogServersLoaded(_servers.Count);
         LoadUserServerSelectionsFromDatabase();
     }
 
@@ -48,11 +48,11 @@ public class TerrariaServerService
                     _userServerSelections[(selection.UserId, selection.GroupId)] = selection.ServerName;
                 }
             }
-            _logger.LogInformation("[TerrariaServerManager] 已从数据库加载 {Count} 个用户服务器选择", _userServerSelections.Count);
+            _logger.LogUserServerSelectionsLoaded(_userServerSelections.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning("[TerrariaServerManager] 从数据库加载用户服务器选择失败: {Error}", ex.Message);
+            _logger.LogFailedToLoadUserServerSelections(ex.Message);
         }
     }
 
@@ -87,11 +87,11 @@ public class TerrariaServerService
         try
         {
             CharacterSelection.SetSelection(userId, groupId, serverName);
-            _logger.LogDebug("[TerrariaServerManager] 用户 {UserId} 在群组 {GroupId} 选择了服务器 {ServerName}", userId, groupId, serverName);
+            _logger.LogUserServerSelected(userId, groupId, serverName);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning("[TerrariaServerManager] 保存用户服务器选择到数据库失败: {Error}", ex.Message);
+            _logger.LogFailedToSaveUserServerSelection(ex.Message);
         }
     }
 
@@ -102,11 +102,11 @@ public class TerrariaServerService
         try
         {
             CharacterSelection.ClearSelection(userId, groupId);
-            _logger.LogDebug("[TerrariaServerManager] 用户 {UserId} 在群组 {GroupId} 的服务器选择已清除", userId, groupId);
+            _logger.LogUserServerCleared(userId, groupId);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning("[TerrariaServerManager] 从数据库清除用户服务器选择失败: {Error}", ex.Message);
+            _logger.LogFailedToClearUserServerSelection(ex.Message);
         }
     }
 
@@ -228,17 +228,16 @@ public class TerrariaServerService
 
     public void RegisterClientConnection(string serverName, Guid clientId)
     {
-        _logger.LogInformation("[TerrariaServerManager] 尝试注册服务器连接: {ServerName}, 可用服务器: {Servers}",
-            serverName, string.Join(", ", _servers.Keys));
+        _logger.LogRegisteringServerConnection(serverName, string.Join(", ", _servers.Keys));
 
         if (TryGetServer(serverName, out var server) && server != null)
         {
             server.SetClientConnection(clientId);
-            _logger.LogInformation("[TerrariaServerManager] 服务器 {ServerName} 已连接到客户端 {ClientId}", serverName, clientId);
+            _logger.LogServerConnected(serverName, clientId);
         }
         else
         {
-            _logger.LogWarning("[TerrariaServerManager] 未找到服务器: {ServerName}", serverName);
+            _logger.LogServerNotFound(serverName);
         }
     }
 
@@ -249,13 +248,49 @@ public class TerrariaServerService
             if (server.GetOnlineClientId() == clientId)
             {
                 server.ClearClientConnection();
-                _logger.LogInformation("[TerrariaServerManager] 服务器 {ServerName} 已断开连接", server.Config.Name);
+                _logger.LogServerDisconnected(server.Config.Name);
             }
         }
     }
 }
 
-public class TerrariaServer(TerrariaServerEnity config, VortexSocketService vortexServer, ILogger logger)
+public static partial class TerrariaServerServiceLoggerExtension
+{
+    [LoggerMessage(LogLevel.Information, "[TerrariaServerManager] 已加载 {Count} 个服务器")]
+    public static partial void LogServersLoaded(this ILogger<TerrariaServerService> logger, int count);
+
+    [LoggerMessage(LogLevel.Information, "[TerrariaServerManager] 已从数据库加载 {Count} 个用户服务器选择")]
+    public static partial void LogUserServerSelectionsLoaded(this ILogger<TerrariaServerService> logger, int count);
+
+    [LoggerMessage(LogLevel.Warning, "[TerrariaServerManager] 从数据库加载用户服务器选择失败: {Error}")]
+    public static partial void LogFailedToLoadUserServerSelections(this ILogger<TerrariaServerService> logger, string error);
+
+    [LoggerMessage(LogLevel.Debug, "[TerrariaServerManager] 用户 {UserId} 在群组 {GroupId} 选择了服务器 {ServerName}")]
+    public static partial void LogUserServerSelected(this ILogger<TerrariaServerService> logger, long userId, long groupId, string serverName);
+
+    [LoggerMessage(LogLevel.Warning, "[TerrariaServerManager] 保存用户服务器选择到数据库失败: {Error}")]
+    public static partial void LogFailedToSaveUserServerSelection(this ILogger<TerrariaServerService> logger, string error);
+
+    [LoggerMessage(LogLevel.Debug, "[TerrariaServerManager] 用户 {UserId} 在群组 {GroupId} 的服务器选择已清除")]
+    public static partial void LogUserServerCleared(this ILogger<TerrariaServerService> logger, long userId, long groupId);
+
+    [LoggerMessage(LogLevel.Warning, "[TerrariaServerManager] 从数据库清除用户服务器选择失败: {Error}")]
+    public static partial void LogFailedToClearUserServerSelection(this ILogger<TerrariaServerService> logger, string error);
+
+    [LoggerMessage(LogLevel.Information, "[TerrariaServerManager] 尝试注册服务器连接: {ServerName}, 可用服务器: {Servers}")]
+    public static partial void LogRegisteringServerConnection(this ILogger<TerrariaServerService> logger, string serverName, string servers);
+
+    [LoggerMessage(LogLevel.Information, "[TerrariaServerManager] 服务器 {ServerName} 已连接到客户端 {ClientId}")]
+    public static partial void LogServerConnected(this ILogger<TerrariaServerService> logger, string serverName, Guid clientId);
+
+    [LoggerMessage(LogLevel.Warning, "[TerrariaServerManager] 未找到服务器: {ServerName}")]
+    public static partial void LogServerNotFound(this ILogger<TerrariaServerService> logger, string serverName);
+
+    [LoggerMessage(LogLevel.Information, "[TerrariaServerManager] 服务器 {ServerName} 已断开连接")]
+    public static partial void LogServerDisconnected(this ILogger<TerrariaServerService> logger, string serverName);
+}
+
+public partial class TerrariaServer(TerrariaServerEnity config, VortexSocketService vortexServer, ILogger logger)
 {
     private readonly ILogger _logger = logger;
     private Guid? _connectedClientId;
@@ -290,25 +325,25 @@ public class TerrariaServer(TerrariaServerEnity config, VortexSocketService vort
     {
         if (_connectedClientId == null)
         {
-            _logger.LogDebug("[TerrariaServer] 获取状态失败: 未连接到客户端");
+            _logger.LogGetStatusFailedNotConnected();
             return null;
         }
 
-        _logger.LogDebug("[TerrariaServer] 正在向客户端 {ClientId} 请求状态", _connectedClientId);
+        _logger.LogRequestingStatus(_connectedClientId);
         var request = new ServerStatusPacket();
         var response = await VortexServer.RequestAsync<ServerStatusPacket, ServerStatusPacketResponse>(_connectedClientId.Value, request);
 
         if (response == null)
         {
-            _logger.LogWarning("[TerrariaServer] 获取状态超时或无响应");
+            _logger.LogGetStatusTimeout(_connectedClientId);
         }
         else if (!response.Success)
         {
-            _logger.LogWarning("[TerrariaServer] 获取状态失败: {Message}", response.Message);
+            _logger.LogGetStatusFailed(response.Message);
         }
         else
         {
-            _logger.LogDebug("[TerrariaServer] 获取状态成功");
+            _logger.LogGetStatusSuccess();
         }
 
         return response;
@@ -391,4 +426,21 @@ public class TerrariaServer(TerrariaServerEnity config, VortexSocketService vort
         };
         return await VortexServer.RequestAsync<PlayerInventoryPacket, PlayerInventoryPacketResponse>(_connectedClientId.Value, request);
     }
+}
+
+public static partial class TerrariaServerLoggerExtension
+{
+    [LoggerMessage(LogLevel.Warning, "[TerrariaServer] 无法获取服务器状态，未连接到客户端")]
+    public static partial void LogGetStatusFailedNotConnected(this ILogger logger);
+
+    [LoggerMessage(LogLevel.Information, "[TerrariaServer] 请求服务器状态，客户端ID: {ClientId}")]
+    public static partial void LogRequestingStatus(this ILogger logger, Guid? clientId);
+
+    [LoggerMessage(LogLevel.Warning, "[TerrariaServer] 获取服务器状态超时，客户端ID: {ClientId}")]
+    public static partial void LogGetStatusTimeout(this ILogger logger, Guid? clientId);
+
+    [LoggerMessage(LogLevel.Warning, "[TerrariaServer] 获取服务器状态失败: {Message}")]
+    public static partial void LogGetStatusFailed(this ILogger logger, string message);
+    [LoggerMessage(LogLevel.Information, "[TerrariaServer] 获取服务器状态成功")]
+    public static partial void LogGetStatusSuccess(this ILogger logger);
 }
