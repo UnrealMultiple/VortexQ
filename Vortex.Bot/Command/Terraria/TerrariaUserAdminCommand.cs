@@ -20,14 +20,14 @@ public static class TerrariaUserAdminCommand
         [Main]
         public static async Task Execute(GroupCommandArgs args, [Param("角色名称")] string characterName)
         {
-            TerrariaServerService? serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
+            var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
             if (serverManager == null)
             {
                 await args.ReplyWithAtAsync("服务器管理器未初始化");
                 return;
             }
 
-            if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out TerrariaServer? server) || server == null)
+            if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out var server) || server == null)
             {
                 await args.ReplyWithAtAsync("未切换服务器或服务器无效!");
                 return;
@@ -53,20 +53,20 @@ public static class TerrariaUserAdminCommand
         [Main]
         public static async Task Execute(GroupCommandArgs args)
         {
-            TerrariaServerService? serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
+            var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
             if (serverManager == null)
             {
                 await args.ReplyWithAtAsync("服务器管理器未初始化");
                 return;
             }
 
-            if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out TerrariaServer? server) || server == null)
+            if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out var server) || server == null)
             {
                 await args.ReplyWithAtAsync("未切换服务器或服务器无效!");
                 return;
             }
 
-            List<TerrariaUser> users = TerrariaUser.GetUsersByServer(server.Config.Name);
+            var users = TerrariaUser.GetUsersByServer(server.Config.Name);
 
             if (users.Count == 0)
             {
@@ -78,10 +78,10 @@ public static class TerrariaUserAdminCommand
                 .SetTitle($"[{server.Config.Name}] 用户列表")
                 .SetMemberUin(args.SenderUin);
 
-            int displayCount = Math.Min(users.Count, 20);
-            for (int i = 0; i < displayCount; i++)
+            var displayCount = Math.Min(users.Count, 20);
+            for (var i = 0; i < displayCount; i++)
             {
-                TerrariaUser user = users[i];
+                var user = users[i];
                 builder.AddItem($"ID:{user.Id} 名称:{user.Name} 组ID:{user.GroupId}");
             }
 

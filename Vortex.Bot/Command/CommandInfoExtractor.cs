@@ -6,16 +6,13 @@ internal sealed class CommandInfoExtractor(Command rootCommand, string[] rootAli
     private readonly string[] _rootAliases = rootAliases;
     private readonly bool _includeSubCommands = includeSubCommands;
 
-    public IEnumerable<CommandInfo> Extract()
-    {
-        return ExtractFromCommand(_rootCommand, _rootAliases, "");
-    }
+    public IEnumerable<CommandInfo> Extract() => ExtractFromCommand(_rootCommand, _rootAliases, "");
 
     private IEnumerable<CommandInfo> ExtractFromCommand(Command command, string[] aliases, string parentPath)
     {
-        string currentPath = string.IsNullOrEmpty(parentPath) ? aliases[0] : parentPath;
+        var currentPath = string.IsNullOrEmpty(parentPath) ? aliases[0] : parentPath;
 
-        CommandExecutor? mainExecutor = command.GetMainCommands()
+        var mainExecutor = command.GetMainCommands()
             .OfType<CommandExecutor>()
             .FirstOrDefault();
 
@@ -27,7 +24,7 @@ internal sealed class CommandInfoExtractor(Command rootCommand, string[] rootAli
         if (!_includeSubCommands)
             yield break;
 
-        foreach (CommandInfo info in ExtractSubCommands(command, currentPath))
+        foreach (var info in ExtractSubCommands(command, currentPath))
         {
             yield return info;
         }
@@ -47,7 +44,7 @@ internal sealed class CommandInfoExtractor(Command rootCommand, string[] rootAli
 
         foreach (var item in groupedSubCommands)
         {
-            string subPath = $"{parentPath} {item.Aliases[0]}";
+            var subPath = $"{parentPath} {item.Aliases[0]}";
 
             if (item.Command is CommandExecutor executor)
             {
@@ -63,15 +60,11 @@ internal sealed class CommandInfoExtractor(Command rootCommand, string[] rootAli
         }
     }
 
-    private static CommandInfo CreateCommandInfo(string path, string[] aliases, Command? command, CommandExecutor executor)
+    private static CommandInfo CreateCommandInfo(string path, string[] aliases, Command? command, CommandExecutor executor) => new()
     {
-        string? helpText = command?.HelpText ?? executor.HelpText;
-        return new CommandInfo
-        {
-            Path = path,
-            Aliases = aliases,
-            HelpText = helpText,
-            ParameterInfo = executor.ParameterInfo
-        };
-    }
+        Path = path,
+        Aliases = aliases,
+        HelpText = command?.HelpText ?? executor.HelpText,
+        ParameterInfo = executor.ParameterInfo
+    };
 }

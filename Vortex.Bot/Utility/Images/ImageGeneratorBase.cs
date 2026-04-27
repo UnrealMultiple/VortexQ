@@ -34,14 +34,14 @@ public abstract class ImageGeneratorBase
 
     public virtual byte[] Generate()
     {
-        (int width, int height) = ComputeLayout();
+        (var width, var height) = ComputeLayout();
 
-        using Image<Rgba32> background = Image.Load<Rgba32>(BackgroundPath);
+        using var background = Image.Load<Rgba32>(BackgroundPath);
         _backgroundImage = background.Crop(width, height);
 
         _backgroundImage.Mutate(ctx => DrawContent(ctx, width, height));
 
-        byte[] result = _backgroundImage.ToBytesAsync().Result;
+        var result = _backgroundImage.ToBytesAsync().Result;
         _backgroundImage = null;
         return result;
     }
@@ -49,7 +49,7 @@ public abstract class ImageGeneratorBase
     protected void DrawCardBackgroundWithGlassEffect(IImageProcessingContext ctx, int x, int y, int width, int height, byte? opacity = null)
     {
         if (_backgroundImage == null) return;
-        Rgba32 bgColor = CardBackgroundColor.ToPixel<Rgba32>();
+        var bgColor = CardBackgroundColor.ToPixel<Rgba32>();
         if (opacity.HasValue)
         {
             bgColor.A = opacity.Value;
@@ -57,12 +57,12 @@ public abstract class ImageGeneratorBase
         CardRenderer.DrawRoundedCardWithBlur(ctx, _backgroundImage, x, y, width, height, CardCornerRadius, new Color(bgColor));
     }
 
-    protected Font CreateFont(float size, FontStyle style = FontStyle.Regular)
+    protected static Font CreateFont(float size, FontStyle style = FontStyle.Regular)
     {
         return CardRenderer.CreateFont(size, style);
     }
 
-    protected FontFamily GetFontFamily()
+    protected static FontFamily GetFontFamily()
     {
         return CardRenderer.GetFontFamily();
     }

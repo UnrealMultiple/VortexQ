@@ -6,12 +6,12 @@ public class CommandUtility
 {
     public static List<string> ParseParameters(string str)
     {
-        List<string> ret = [];
+        var ret = new List<string>();
         var sb = new StringBuilder();
-        bool instr = false;
-        for (int i = 0; i < str.Length; i++)
+        var instr = false;
+        for (var i = 0; i < str.Length; i++)
         {
-            char c = str[i];
+            var c = str[i];
 
             if (c == '\\' && ++i < str.Length)
             {
@@ -57,14 +57,14 @@ public class CommandUtility
 
     public static Dictionary<string, string> ParseCommandLine(List<string> command)
     {
-        Dictionary<string, string> args = [];
-        for (int i = 0; i < command.Count; i++)
+        var args = new Dictionary<string, string>();
+        for (var i = 0; i < command.Count; i++)
         {
-            string cmd = command[i];
+            var cmd = command[i];
             if (cmd.StartsWith('-'))
             {
-                string str = "";
-                for (int j = i + 1; j < command.Count; j++)
+                var str = "";
+                for (var j = i + 1; j < command.Count; j++)
                 {
                     if (!command[j].StartsWith('-'))
                         str += " " + command[j];

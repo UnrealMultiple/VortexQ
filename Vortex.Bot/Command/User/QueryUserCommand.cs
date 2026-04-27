@@ -17,7 +17,7 @@ public static class QueryUserCommand
     public static async Task Execute(GroupCommandArgs args, [Param("QQ号(可选)")] long? targetUserId = null)
     {
         long userId;
-        MentionEntity? mention = args.MessageChain?.OfType<MentionEntity>().FirstOrDefault();
+        var mention = args.MessageChain?.OfType<MentionEntity>().FirstOrDefault();
         if (mention != null)
         {
             userId = mention.Uin;

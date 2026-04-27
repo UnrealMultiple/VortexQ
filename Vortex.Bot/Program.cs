@@ -26,8 +26,8 @@ class Program
         {
             {
                 Console.WriteLine($"{Constants.ConfigFileName} not found. Generating...");
-                using Stream input = typeof(Program).Assembly.GetManifestResourceStream(Constants.ConfigResourceName) ?? throw new Exception("Default configuration file not found");
-                using FileStream output = File.OpenWrite(Constants.ConfigFileName);
+                using var input = typeof(Program).Assembly.GetManifestResourceStream(Constants.ConfigResourceName) ?? throw new Exception("Default configuration file not found");
+                using var output = File.OpenWrite(Constants.ConfigFileName);
                 input.CopyTo(output);
             }
 

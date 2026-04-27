@@ -6,11 +6,11 @@ internal static class ErrorMessageBuilder
 {
     public static string BuildParseError(CommandArgs args, ParseResult result, string commandName)
     {
-        StringBuilder sb = new StringBuilder();
+        var sb = new StringBuilder();
         sb.AppendLine("❌ 指令格式错误");
 
-        string paramInfo = GetParameterInfo(result.Current);
-        string fullCommandName = args.CommandPrefix + args.CommandName;
+        var paramInfo = GetParameterInfo(result.Current);
+        var fullCommandName = args.CommandPrefix + args.CommandName;
         sb.AppendLine($"最接近的匹配: {fullCommandName}{paramInfo}");
 
         sb.AppendLine();
@@ -23,11 +23,11 @@ internal static class ErrorMessageBuilder
 
     public static string BuildIncompleteCommandHint(Command command, CommandArgs args, string commandName)
     {
-        StringBuilder sb = new StringBuilder();
+        var sb = new StringBuilder();
         sb.AppendLine("❌ 指令不完整，请指定子命令");
 
-        string prefix = args.CommandPrefix + commandName;
-        for (int i = 0; i < args.Params.Count; i++)
+        var prefix = args.CommandPrefix + commandName;
+        for (var i = 0; i < args.Params.Count; i++)
         {
             prefix += " " + args.Params[i];
         }
@@ -37,7 +37,7 @@ internal static class ErrorMessageBuilder
         sb.AppendLine("📋 可用子命令:");
 
         var availableSubCommands = GetAvailableSubCommands(command, args);
-        bool hasMainExecutor = command.GetMainCommands().Any(m => m is CommandExecutor);
+        var hasMainExecutor = command.GetMainCommands().Any(m => m is CommandExecutor);
 
         if (availableSubCommands.Count == 0 && !hasMainExecutor)
         {
@@ -45,7 +45,7 @@ internal static class ErrorMessageBuilder
         }
         else
         {
-            foreach (string? cmdName in availableSubCommands.OrderBy(n => n))
+            foreach (var cmdName in availableSubCommands.OrderBy(n => n))
             {
                 sb.AppendLine($"  • {cmdName}");
             }
@@ -78,7 +78,7 @@ internal static class ErrorMessageBuilder
 
     private static List<string> GetAvailableSubCommands(Command command, CommandArgs args)
     {
-        List<string> result = new List<string>();
+        var result = new List<string>();
 
         foreach (var (cmdName, subs) in command.GetNamedCommands())
         {

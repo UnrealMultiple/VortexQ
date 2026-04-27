@@ -13,7 +13,7 @@ public static class ServerSwitchCommand
     [Main]
     public static async Task SwitchServer(GroupCommandArgs args, [Param("服务器名称")] string serverName)
     {
-        TerrariaServerService? serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
+        var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
         if (serverManager == null)
         {
             await args.ReplyWithAtAsync("服务器管理器未初始化");
@@ -26,7 +26,7 @@ public static class ServerSwitchCommand
             return;
         }
 
-        if (!serverManager.TryGetServer(serverName, out TerrariaServer? server) || server == null)
+        if (!serverManager.TryGetServer(serverName, out var server) || server == null)
         {
             await args.ReplyWithAtAsync($"未找到服务器: {serverName}");
             return;

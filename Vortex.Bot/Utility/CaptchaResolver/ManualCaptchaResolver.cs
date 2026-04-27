@@ -11,9 +11,9 @@ public class ManualCaptchaResolver : ICaptchaResolver
         {
             Console.WriteLine($"Captcha URL: {url}");
             Console.Write("Please enter the ticket: ");
-            string ticket = Console.ReadLine() ?? string.Empty;
+            var ticket = Console.ReadLine() ?? string.Empty;
             Console.Write("Please enter the randstr: ");
-            string randstr = Console.ReadLine() ?? string.Empty;
+            var randstr = Console.ReadLine() ?? string.Empty;
 
             return (ticket, randstr);
         }, token);

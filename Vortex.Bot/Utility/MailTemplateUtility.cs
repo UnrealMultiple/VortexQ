@@ -15,15 +15,15 @@ public static class MailTemplateUtility
             return cachedTemplate;
         }
 
-        string templatePath = Path.Combine(TemplatesBasePath, $"{templateName}.html");
+        var templatePath = Path.Combine(TemplatesBasePath, $"{templateName}.html");
         if (File.Exists(templatePath))
         {
-            string content = File.ReadAllText(templatePath);
+            var content = File.ReadAllText(templatePath);
             TemplateCache[templateName] = content;
             return content;
         }
 
-        string? resourceContent = LoadFromEmbeddedResource(templateName);
+        var resourceContent = LoadFromEmbeddedResource(templateName);
         if (resourceContent != null)
         {
             TemplateCache[templateName] = resourceContent;
@@ -35,9 +35,9 @@ public static class MailTemplateUtility
 
     public static string RenderTemplate(string templateName, Dictionary<string, string> variables)
     {
-        string template = GetTemplate(templateName);
+        var template = GetTemplate(templateName);
 
-        foreach (KeyValuePair<string, string> variable in variables)
+        foreach (var variable in variables)
         {
             template = template.Replace($"{{{{{variable.Key}}}}}", variable.Value);
         }
@@ -47,12 +47,12 @@ public static class MailTemplateUtility
 
     public static string RenderTemplate<T>(string templateName, T model) where T : class
     {
-        string template = GetTemplate(templateName);
-        PropertyInfo[] properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        var template = GetTemplate(templateName);
+        var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
 
-        foreach (PropertyInfo property in properties)
+        foreach (var property in properties)
         {
-            string value = property.GetValue(model)?.ToString() ?? string.Empty;
+            var value = property.GetValue(model)?.ToString() ?? string.Empty;
             template = template.Replace($"{{{{{property.Name}}}}}", value);
         }
 
@@ -62,9 +62,9 @@ public static class MailTemplateUtility
     private static string? LoadFromEmbeddedResource(string templateName)
     {
         var assembly = Assembly.GetExecutingAssembly();
-        string resourceName = $"Vortex.Bot.Resources.Templates.{templateName}.html";
+        var resourceName = $"Vortex.Bot.Resources.Templates.{templateName}.html";
 
-        using Stream? stream = assembly.GetManifestResourceStream(resourceName);
+        using var stream = assembly.GetManifestResourceStream(resourceName);
         if (stream == null) return null;
 
         using var reader = new StreamReader(stream);
@@ -80,11 +80,11 @@ public static class MailTemplateUtility
     {
         if (TemplateCache.ContainsKey(templateName)) return true;
 
-        string templatePath = Path.Combine(TemplatesBasePath, $"{templateName}.html");
+        var templatePath = Path.Combine(TemplatesBasePath, $"{templateName}.html");
         if (File.Exists(templatePath)) return true;
 
         var assembly = Assembly.GetExecutingAssembly();
-        string resourceName = $"Vortex.Bot.Resources.Templates.{templateName}.html";
+        var resourceName = $"Vortex.Bot.Resources.Templates.{templateName}.html";
         return assembly.GetManifestResourceStream(resourceName) != null;
     }
 }

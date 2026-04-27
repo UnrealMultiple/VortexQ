@@ -66,7 +66,7 @@ public class Group
 
         if (permission.StartsWith("!"))
         {
-            string actualPerm = permission[1..];
+            var actualPerm = permission[1..];
             if (!_negatedPermissions.Contains(actualPerm))
             {
                 _negatedPermissions.Add(actualPerm);
@@ -99,7 +99,7 @@ public class Group
     {
         _permissions.Clear();
         _negatedPermissions.Clear();
-        foreach (string perm in permissions)
+        foreach (var perm in permissions)
         {
             AddPermission(perm);
         }
@@ -107,11 +107,11 @@ public class Group
 
     public List<string> GetTotalPermissions()
     {
-        HashSet<string> allPerms = new HashSet<string>();
-        HashSet<string> negatedPerms = new HashSet<string>();
-        HashSet<string> traversed = new HashSet<string>();
+        var allPerms = new HashSet<string>();
+        var negatedPerms = new HashSet<string>();
+        var traversed = new HashSet<string>();
 
-        Group? current = this;
+        var current = this;
         while (current != null)
         {
             if (traversed.Contains(current.Name))
@@ -120,7 +120,7 @@ public class Group
             }
             traversed.Add(current.Name);
 
-            foreach (string perm in current._permissions)
+            foreach (var perm in current._permissions)
             {
                 if (!negatedPerms.Contains(perm))
                 {
@@ -128,7 +128,7 @@ public class Group
                 }
             }
 
-            foreach (string perm in current._negatedPermissions)
+            foreach (var perm in current._negatedPermissions)
             {
                 allPerms.Remove(perm);
                 negatedPerms.Add(perm);
@@ -150,11 +150,11 @@ public class Group
             return !negated;
         }
 
-        string[] nodes = permission.Split('.');
-        for (int i = nodes.Length - 1; i >= 0; i--)
+        var nodes = permission.Split('.');
+        for (var i = nodes.Length - 1; i >= 0; i--)
         {
             nodes[i] = "*";
-            string wildcardPerm = string.Join(".", nodes, 0, i + 1);
+            var wildcardPerm = string.Join(".", nodes, 0, i + 1);
             if (HasExactPermission(wildcardPerm, out negated))
             {
                 return !negated;
@@ -167,9 +167,9 @@ public class Group
     private bool HasExactPermission(string permission, out bool negated)
     {
         negated = false;
-        HashSet<string> traversed = new HashSet<string>();
+        var traversed = new HashSet<string>();
 
-        Group? current = this;
+        var current = this;
         while (current != null)
         {
             if (traversed.Contains(current.Name))
@@ -215,7 +215,7 @@ public class Group
             throw new InvalidOperationException($"组 '{name}' 已存在");
         }
 
-        Group group = new Group
+        var group = new Group
         {
             Name = name,
             Permission = permissions,

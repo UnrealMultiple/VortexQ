@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Core.Service;
-using Vortex.Protocol.Packets;
 
 namespace Vortex.Bot.Command.Terraria;
 
@@ -14,21 +13,21 @@ public static class ServerRestartCommand
     [Main]
     public static async Task RestartServer(GroupCommandArgs args)
     {
-        TerrariaServerService? serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
+        var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
         if (serverManager == null)
         {
             await args.ReplyWithAtAsync("服务器管理器未初始化");
             return;
         }
 
-        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out TerrariaServer? server) || server == null)
+        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out var server) || server == null)
         {
             await args.ReplyWithAtAsync("请先使用 '切换 <名称>' 选择要操作的服务器!");
             return;
         }
 
-        string startArgs = args.Params.Count > 0 ? string.Join(" ", args.Params) : "";
-        ServerRestartPacketResponse? result = await server.RestartAsync(startArgs);
+        var startArgs = args.Params.Count > 0 ? string.Join(" ", args.Params) : "";
+        var result = await server.RestartAsync(startArgs);
 
         if (result?.Success == true)
         {

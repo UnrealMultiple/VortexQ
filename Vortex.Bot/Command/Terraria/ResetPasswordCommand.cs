@@ -2,11 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using Vortex.Bot.Attributes;
-using Vortex.Bot.Configuration;
 using Vortex.Bot.Core.Service;
 using Vortex.Bot.Database.Models;
 using Vortex.Bot.Utility;
-using Vortex.Protocol.Packets;
 
 namespace Vortex.Bot.Command.Terraria;
 
@@ -19,20 +17,20 @@ public static class ResetPasswordCommand
     [Main]
     public static async Task Execute(GroupCommandArgs args)
     {
-        TerrariaServerService? serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
+        var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
         if (serverManager == null)
         {
             await args.ReplyWithAtAsync("服务器管理器未初始化");
             return;
         }
 
-        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out TerrariaServer? server) || server == null)
+        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out var server) || server == null)
         {
             await args.ReplyWithAtAsync("服务器无效或未切换至一个有效服务器!");
             return;
         }
 
-        MailConfiguration mailConfig = args.Context.Configuration.Mail;
+        var mailConfig = args.Context.Configuration.Mail;
         if (!mailConfig.Enabled)
         {
             await args.ReplyWithAtAsync("邮件服务未启用，无法重置密码。");
@@ -41,7 +39,7 @@ public static class ResetPasswordCommand
 
         try
         {
-            List<TerrariaUser> users = TerrariaUser.GetUsersById(args.SenderUin, server.Config.Name);
+            var users = TerrariaUser.GetUsersById(args.SenderUin, server.Config.Name);
 
             if (users.Count == 0)
             {
@@ -49,14 +47,13 @@ public static class ResetPasswordCommand
                 return;
             }
 
-            List<(string CharacterName, string NewPassword)> resetResults = new List<(string CharacterName, string NewPassword)>();
+            var resetResults = new List<(string CharacterName, string NewPassword)>();
 
-            foreach (TerrariaUser user in users)
+            foreach (var user in users)
             {
-                string newPassword = Guid.NewGuid().ToString()[..8];
+                var newPassword = Guid.NewGuid().ToString()[..8];
 
-                ExecuteCommandPacketResponse? result = await server.ExecuteCommandAsync($"/user password {user.Name} {newPassword}");
-
+                var result = await server.ExecuteCommandAsync($"/user password {user.Name} {newPassword}");
                 if (result?.Success == true)
                 {
                     TerrariaUser.ResetPassword(args.SenderUin, server.Config.Name, user.Name, newPassword);
@@ -92,7 +89,7 @@ public static class ResetPasswordCommand
 
                 await Task.Run(() =>
                 {
-                    using MailUtility mail = MailUtility.Builder(mailConfig.Host, mailConfig.Port, mailConfig.Password, mailConfig.EnableSsl)
+                    using var mail = MailUtility.Builder(mailConfig.Host, mailConfig.Port, mailConfig.Password, mailConfig.EnableSsl)
                         .SetSender(mailConfig.From)
                         .AddTarget($"{args.SenderUin}@qq.com")
                         .SetTile($"[{server.Config.Name}] Terraria 服务器密码重置成功")

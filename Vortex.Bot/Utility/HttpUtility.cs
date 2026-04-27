@@ -1,5 +1,4 @@
-﻿using System.Collections.Specialized;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 
 namespace Vortex.Bot.Utility;
@@ -15,9 +14,9 @@ public static class HttpUtility
     public static string QueryUri(string url, Dictionary<string, string>? @params = null)
     {
         var uri = new UriBuilder(url);
-        NameValueCollection args = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var args = System.Web.HttpUtility.ParseQueryString(uri.Query);
         if (@params is not null)
-            foreach ((string? key, string? value) in @params)
+            foreach ((var key, var value) in @params)
                 args[key] = value;
         uri.Query = args.ToString();
         return uri.ToString();
@@ -35,15 +34,15 @@ public static class HttpUtility
 
     public static async Task<string> PostAsync(string url, Dictionary<string, string>? args = null, CancellationToken cancellationToken = default)
     {
-        FormUrlEncodedContent form = new(args ?? []);
-        HttpResponseMessage content = await HttpClient.PostAsync(url, form, cancellationToken);
+        var form = new FormUrlEncodedContent(args ?? new Dictionary<string, string>());
+        var content = await HttpClient.PostAsync(url, form, cancellationToken);
         return await content.Content.ReadAsStringAsync(cancellationToken);
     }
 
     public static async Task<string> PostContentAsync(string url, Dictionary<string, string> args, CancellationToken cancellationToken = default)
     {
-        StringContent payload = new(JsonSerializer.Serialize(args));
-        HttpResponseMessage content = await HttpClient.PostAsync(url, payload, cancellationToken);
+        var payload = new StringContent(JsonSerializer.Serialize(args));
+        var content = await HttpClient.PostAsync(url, payload, cancellationToken);
         return await content.Content.ReadAsStringAsync();
     }
 }

@@ -9,8 +9,8 @@ internal static class CommandHelper
         if (!(type.IsAbstract && type.IsSealed))
             Console.WriteLine($"Command `{type.FullName}` should be a static class");
 
-        string[] names = AliasResolver.GetAllAliases(type).ToArray();
-        Command tree = CommandTreeBuilder.BuildTree(type, names[0], names[0]);
+        var names = AliasResolver.GetAllAliases(type).ToArray();
+        var tree = CommandTreeBuilder.BuildTree(type, names[0], names[0]);
 
         return (names, tree);
     }
@@ -18,7 +18,7 @@ internal static class CommandHelper
     internal static async Task ExecuteAsync(Command tree, CommandArgs args, string commandName)
     {
         args.Logger.LogDebug("Parsing command, args: [{Args}]", string.Join(", ", args.Params));
-        ParseResult result = await tree.TryParseAsync(args, 0, commandName);
+        var result = await tree.TryParseAsync(args, 0, commandName);
 
         if (result.Unmatched == 0)
         {
@@ -26,7 +26,7 @@ internal static class CommandHelper
             return;
         }
 
-        string errorMessage = ErrorMessageBuilder.BuildParseError(args, result, commandName);
+        var errorMessage = ErrorMessageBuilder.BuildParseError(args, result, commandName);
         await args.ReplyWithAtAsync(errorMessage);
     }
 }

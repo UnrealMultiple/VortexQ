@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Mail;
-using System.Net.Mime;
 using System.Text;
 
 namespace Vortex.Bot.Utility;
@@ -43,8 +42,8 @@ public class MailUtility(string Host, int Port, string Password, bool EnableSsl)
 
     public MailUtility AddAttachment(string path)
     {
-        Attachment attach = new Attachment(path);
-        ContentDisposition disposition = attach.ContentDisposition!;
+        var attach = new Attachment(path);
+        var disposition = attach.ContentDisposition!;
         disposition.CreationDate = File.GetCreationTime(path);
         disposition.ModificationDate = File.GetLastWriteTime(path);
         disposition.ReadDate = File.GetLastAccessTime(path);

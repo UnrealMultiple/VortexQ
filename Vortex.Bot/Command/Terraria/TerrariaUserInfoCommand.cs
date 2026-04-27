@@ -2,8 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Core.Service;
 using Vortex.Bot.Utility.Images;
-using Vortex.Protocol.Models;
-using Vortex.Protocol.Packets;
 
 namespace Vortex.Bot.Command.Terraria;
 
@@ -16,25 +14,24 @@ public static class TerrariaUserInfoCommand
     [Main]
     public static async Task Execute(GroupCommandArgs args, [Param("角色名称")] string characterName)
     {
-        TerrariaServerService? serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
+        var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
         if (serverManager == null)
         {
             await args.ReplyWithAtAsync("服务器管理器未初始化");
             return;
         }
 
-        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out TerrariaServer? server) || server == null)
+        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out var server) || server == null)
         {
             await args.ReplyWithAtAsync("服务器不存在或未切换至一个服务器!");
             return;
         }
 
-        AccountQueryPacketResponse? result = await server.QueryAccountAsync(characterName);
+        var result = await server.QueryAccountAsync(characterName);
 
         if (result?.Success == true && result.Accounts.Count > 0)
         {
-            Account? account = result.Accounts.FirstOrDefault(a => a.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
-
+            var account = result.Accounts.FirstOrDefault(a => a.Name.Equals(characterName, StringComparison.OrdinalIgnoreCase));
             if (account == null)
             {
                 await args.ReplyWithAtAsync($"[{server.Config.Name}] 未找到玩家: {characterName}");

@@ -34,7 +34,7 @@ public class CharacterSelection
 
     public static void SetSelection(long userId, long groupId, string serverName)
     {
-        CharacterSelection? existing = DataContext.Records
+        var existing = DataContext.Records
             .FirstOrDefault(f => f.UserId == userId && f.GroupId == groupId);
 
         if (existing != null)
@@ -45,7 +45,7 @@ public class CharacterSelection
         }
         else
         {
-            CharacterSelection selection = new CharacterSelection
+            var selection = new CharacterSelection
             {
                 UserId = userId,
                 GroupId = groupId,

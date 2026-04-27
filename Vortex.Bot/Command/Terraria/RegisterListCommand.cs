@@ -15,20 +15,20 @@ public static class RegisterListCommand
     [Main]
     public static async Task Execute(GroupCommandArgs args)
     {
-        TerrariaServerService? serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
+        var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
         if (serverManager == null)
         {
             await args.ReplyWithAtAsync("服务器管理器未初始化");
             return;
         }
 
-        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out TerrariaServer? server) || server == null)
+        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out var server) || server == null)
         {
             await args.ReplyWithAtAsync("服务器无效或未切换至一个有效服务器!");
             return;
         }
 
-        List<TerrariaUser> users = TerrariaUser.GetUsersById(args.SenderUin, server.Config.Name);
+        var users = TerrariaUser.GetUsersById(args.SenderUin, server.Config.Name);
 
         if (users.Count == 0)
         {
@@ -40,9 +40,9 @@ public static class RegisterListCommand
             .SetTitle($"[{server.Config.Name}] 注册列表")
             .SetMemberUin(args.SenderUin);
 
-        for (int i = 0; i < users.Count; i++)
+        for (var i = 0; i < users.Count; i++)
         {
-            TerrariaUser user = users[i];
+            var user = users[i];
             builder.AddItem($"{i + 1}. {user.Name} (GroupID: {user.GroupId})");
         }
 

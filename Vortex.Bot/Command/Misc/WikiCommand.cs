@@ -13,8 +13,8 @@ public static class WikiCommand
     [Flexible]
     public static async Task Execute(CommandArgs args, [Param("搜索内容(可选)")] string? searchTerm = null)
     {
-        string baseUrl = "https://terraria.wiki.gg/zh/index.php";
-        string url = string.IsNullOrEmpty(searchTerm) ? baseUrl : $"{baseUrl}?search={HttpUtility.UrlEncode(searchTerm)}";
+        var baseUrl = "https://terraria.wiki.gg/zh/index.php";
+        var url = string.IsNullOrEmpty(searchTerm) ? baseUrl : $"{baseUrl}?search={HttpUtility.UrlEncode(searchTerm)}";
         await args.ReplyWithAtAsync(url);
     }
 }

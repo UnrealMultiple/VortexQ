@@ -58,13 +58,13 @@ public class TerrariaUser
             throw new InvalidOperationException("此用户已经注册过了!");
         }
 
-        TerrariaUser? existingUser = GetUserByName(name, server);
+        var existingUser = GetUserByName(name, server);
         if (existingUser != null)
         {
             throw new InvalidOperationException($"此名称已经被{existingUser.Id}注册过了!");
         }
 
-        TerrariaUser user = new TerrariaUser
+        var user = new TerrariaUser
         {
             Id = id,
             Server = server,
@@ -78,7 +78,7 @@ public class TerrariaUser
 
     public static void ResetPassword(long id, string serverName, string name, string password)
     {
-        TerrariaUser user = GetUserById(id, serverName, name)
+        var user = GetUserById(id, serverName, name)
             ?? throw new InvalidOperationException("用户不存在!");
 
         user.Password = password;
@@ -87,7 +87,7 @@ public class TerrariaUser
 
     public static void Remove(string server, string name)
     {
-        TerrariaUser user = GetUserByName(name, server) ?? throw new InvalidOperationException($"在{server}上没有找到{name}");
+        var user = GetUserByName(name, server) ?? throw new InvalidOperationException($"在{server}上没有找到{name}");
         DataContext.Delete(i => i.Server == server && i.Name == name);
     }
 

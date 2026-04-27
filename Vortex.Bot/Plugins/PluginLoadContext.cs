@@ -23,13 +23,13 @@ public class PluginLoadContext(string pluginDirectory, string contextName) : Ass
             return;
         }
 
-        string[] dllFiles = Directory.GetFiles(_pluginDirectory, "*.dll", SearchOption.AllDirectories);
+        var dllFiles = Directory.GetFiles(_pluginDirectory, "*.dll", SearchOption.AllDirectories);
 
-        foreach (string dllPath in dllFiles)
+        foreach (var dllPath in dllFiles)
         {
             try
             {
-                Assembly assembly = LoadFromAssemblyPath(dllPath);
+                var assembly = LoadFromAssemblyPath(dllPath);
                 if (!_loadedAssemblies.Contains(assembly))
                 {
                     _loadedAssemblies.Add(assembly);
@@ -46,20 +46,20 @@ public class PluginLoadContext(string pluginDirectory, string contextName) : Ass
     {
         var plugins = new List<IPlugin>();
 
-        foreach (Assembly assembly in _loadedAssemblies)
+        foreach (var assembly in _loadedAssemblies)
         {
             try
             {
-                IEnumerable<Type> pluginTypes = assembly.GetExportedTypes()
+                var pluginTypes = assembly.GetExportedTypes()
                     .Where(t => typeof(IPlugin).IsAssignableFrom(t)
                                 && !t.IsAbstract
                                 && !t.IsInterface);
 
-                foreach (Type? type in pluginTypes)
+                foreach (var type in pluginTypes)
                 {
                     try
                     {
-                        IPlugin? plugin = serviceProvider.GetService(type) is IPlugin fromService ? fromService : Activator.CreateInstance(type) as IPlugin;
+                        var plugin = serviceProvider.GetService(type) is IPlugin fromService ? fromService : Activator.CreateInstance(type) as IPlugin;
                         if (plugin != null)
                         {
                             plugins.Add(plugin);
@@ -83,7 +83,7 @@ public class PluginLoadContext(string pluginDirectory, string contextName) : Ass
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
-        foreach (Assembly assembly in _loadedAssemblies)
+        foreach (var assembly in _loadedAssemblies)
         {
             if (assembly.FullName == assemblyName.FullName)
             {
@@ -91,19 +91,19 @@ public class PluginLoadContext(string pluginDirectory, string contextName) : Ass
             }
         }
 
-        string? assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
+        var assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
         return assemblyPath != null ? LoadFromAssemblyPath(assemblyPath) : Default.LoadFromAssemblyName(assemblyName);
     }
 
     protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
     {
-        string? libraryPath = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
+        var libraryPath = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
         return libraryPath != null ? LoadUnmanagedDllFromPath(libraryPath) : nint.Zero;
     }
 
     public void UnloadPlugins()
     {
-        foreach (IPlugin plugin in _loadedPlugins)
+        foreach (var plugin in _loadedPlugins)
         {
             try
             {

@@ -30,7 +30,7 @@ public class DatabaseService : IDatabaseService, IDisposable
     public DatabaseService(string dbPath)
     {
         _dbPath = dbPath;
-        string? dir = Path.GetDirectoryName(dbPath);
+        var dir = Path.GetDirectoryName(dbPath);
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
         {
             Directory.CreateDirectory(dir);
@@ -77,8 +77,8 @@ public class DataContext<T> : DataConnection, IDataContext<T> where T : class, n
 
     int IDataContext<T>.Delete(Func<T, bool> predicate)
     {
-        List<T> items = this.GetTable<T>().Where(predicate).ToList();
-        int count = 0;
+        var items = this.GetTable<T>().Where(predicate).ToList();
+        var count = 0;
         foreach (var item in items)
         {
             count += this.Delete(item);

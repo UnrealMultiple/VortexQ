@@ -16,10 +16,10 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
 
     public void AutoRegister(Assembly assembly)
     {
-        IEnumerable<Type> commandTypes = assembly.GetTypes()
+        var commandTypes = assembly.GetTypes()
             .Where(static t => t.IsClass && !t.IsNested && t.GetCustomAttribute<CommandAttribute>() != null);
 
-        foreach (Type? type in commandTypes)
+        foreach (var type in commandTypes)
         {
             try
             {
@@ -34,13 +34,13 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
 
     public void Register(Type type)
     {
-        (string[]? names, Command? tree) = CommandHelper.Register(type);
-        CommandTypeAttribute? commandTypeAttr = type.GetCustomAttribute<CommandTypeAttribute>();
-        CommandType commandTypes = commandTypeAttr?.CommandType ?? CommandType.Group;
+        (var names, var tree) = CommandHelper.Register(type);
+        var commandTypeAttr = type.GetCustomAttribute<CommandTypeAttribute>();
+        var commandTypes = commandTypeAttr?.CommandType ?? CommandType.Group;
 
-        foreach (string name in names)
+        foreach (var name in names)
         {
-            string key = name.ToLowerInvariant();
+            var key = name.ToLowerInvariant();
             if (_commands.TryGetValue(key, out CommandRegistration? existing))
             {
                 existing.Types |= commandTypes;
@@ -71,7 +71,7 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
     {
         if (context == null) return false;
 
-        List<string> parameters = CommandUtility.ParseParameters(commandText);
+        var parameters = CommandUtility.ParseParameters(commandText);
         if (parameters.Count == 0) return false;
 
         if (!TryExtractCommandName(parameters, context.Configuration.Command, out string? cmdName, out List<string>? argsParams))
@@ -80,7 +80,7 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
         if (!TryGetCommandRegistration(cmdName, CommandType.Server, out CommandRegistration? registration))
             return false;
 
-        ServerCommandArgs args = CreateServerArgs(context, argsParams, player, sessionId, parameters, context.Configuration.Command);
+        var args = CreateServerArgs(context, argsParams, player, sessionId, parameters, context.Configuration.Command);
 
         if (await TriggerCommandExecuting(args, cmdName))
             return true;
@@ -97,7 +97,7 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
         VortexContext context)
         where TArgs : CommandArgs
     {
-        List<string> parameters = CommandUtility.ParseParameters(commandText);
+        var parameters = CommandUtility.ParseParameters(commandText);
         if (parameters.Count == 0) return false;
 
         if (!TryExtractCommandName(parameters, context.Configuration.Command, out string? cmdName, out List<string>? argsParams))
@@ -106,7 +106,7 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
         if (!TryGetCommandRegistration(cmdName, requiredType, out CommandRegistration? registration))
             return false;
 
-        TArgs args = argsFactory(argsParams, messageEvent);
+        var args = argsFactory(argsParams, messageEvent);
         args.CommandName = parameters[0];
         args.CommandPrefix = context.Configuration.Command.EnablePrefix ? context.Configuration.Command.Prefix : string.Empty;
 
@@ -117,34 +117,24 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
         return true;
     }
 
-    public bool HasCommand(string name, CommandType? commandType = null)
-    {
-        return !_commands.TryGetValue(name.ToLowerInvariant(), out CommandRegistration? registration)
-            ? false
-            : commandType == null || registration.Types.Supports(commandType.Value);
-    }
+    public bool HasCommand(string name, CommandType? commandType = null) => _commands.TryGetValue(name.ToLowerInvariant(), out CommandRegistration? registration)
+        && (commandType == null || registration.Types.Supports(commandType.Value));
 
-    public IEnumerable<string> GetAllCommands(CommandType? commandType = null)
-    {
-        return commandType == null
+    public IEnumerable<string> GetAllCommands(CommandType? commandType = null) => commandType == null
             ? _commands.Keys
             : _commands
             .Where(kv => kv.Value.Types.Supports(commandType.Value))
             .Select(kv => kv.Key);
-    }
 
-    public CommandType? GetCommandTypes(string name)
-    {
-        return _commands.TryGetValue(name.ToLowerInvariant(), out CommandRegistration? registration)
+    public CommandType? GetCommandTypes(string name) => _commands.TryGetValue(name.ToLowerInvariant(), out CommandRegistration? registration)
             ? registration.Types
             : null;
-    }
 
     public IEnumerable<CommandInfo> GetAllCommandInfos(CommandType? commandType = null, bool includeSubCommands = true)
     {
         var processedTrees = new HashSet<Command>();
 
-        foreach ((string _, CommandRegistration? registration) in _commands)
+        foreach ((var _, var registration) in _commands)
         {
             if (commandType != null && !registration.Types.Supports(commandType.Value))
                 continue;
@@ -153,7 +143,7 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
                 continue;
 
             var extractor = new CommandInfoExtractor(registration.Tree, registration.Aliases, includeSubCommands);
-            foreach (CommandInfo info in extractor.Extract())
+            foreach (var info in extractor.Extract())
             {
                 yield return info;
             }

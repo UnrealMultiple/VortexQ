@@ -45,12 +45,12 @@ public abstract class PluginBase : IPlugin
     {
         _configTypes = FindConfigTypes(Assembly);
 
-        foreach (Type configType in _configTypes)
+        foreach (var configType in _configTypes)
         {
             try
             {
-                MethodInfo? loadMethod = configType.GetMethod("Load", BindingFlags.Public | BindingFlags.Static);
-                string? fileName = loadMethod?.Invoke(null, null) as string;
+                var loadMethod = configType.GetMethod("Load", BindingFlags.Public | BindingFlags.Static);
+                var fileName = loadMethod?.Invoke(null, null) as string;
                 Logger.LogInformation("Plugin [{PluginName}] loaded config: {ConfigName}", Name, fileName ?? configType.Name);
             }
             catch (Exception ex)
@@ -64,11 +64,11 @@ public abstract class PluginBase : IPlugin
     {
         if (_configTypes == null) return;
 
-        foreach (Type configType in _configTypes)
+        foreach (var configType in _configTypes)
         {
             try
             {
-                MethodInfo? unloadMethod = configType.GetMethod("Unload", BindingFlags.Public | BindingFlags.Static);
+                var unloadMethod = configType.GetMethod("Unload", BindingFlags.Public | BindingFlags.Static);
                 unloadMethod?.Invoke(null, null);
             }
             catch (Exception ex)
@@ -81,15 +81,15 @@ public abstract class PluginBase : IPlugin
 
     private static List<Type> FindConfigTypes(Assembly assembly)
     {
-        Type configBaseType = typeof(JsonConfigBase<>);
+        var configBaseType = typeof(JsonConfigBase<>);
         var result = new List<Type>();
 
-        foreach (Type type in assembly.GetExportedTypes())
+        foreach (var type in assembly.GetExportedTypes())
         {
             if (type.IsAbstract || type.IsInterface)
                 continue;
 
-            Type? baseType = type.BaseType;
+            var baseType = type.BaseType;
             while (baseType != null)
             {
                 if (baseType.IsGenericType && baseType.GetGenericTypeDefinition() == configBaseType)

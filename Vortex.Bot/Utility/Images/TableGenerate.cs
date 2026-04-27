@@ -51,7 +51,7 @@ public class TableBuilder
     public TableBuilder SetHeader(params string[] headers)
     {
         if (headers == null || headers.Length == 0) return this;
-        foreach (string value in headers)
+        foreach (var value in headers)
             Header.Add(new TableCell(value));
         return this;
     }
@@ -68,7 +68,7 @@ public class TableBuilder
         if (rows == null || rows.Length == 0) return this;
 
         var content = new TableContent();
-        foreach (string value in rows)
+        foreach (var value in rows)
             content.Content.Add(new TableCell(value));
         Rows.Add(content);
         return this;
@@ -218,8 +218,8 @@ public class TableGenerate : ImageGeneratorBase, IImageGenerator<TableBuilder>
     {
         if (_currentBuilder == null) throw new InvalidOperationException("Builder not set");
 
-        Font tableFont = CreateFont(Config.FontSize);
-        FontRectangle textSize = MeasureText("A", tableFont);
+        var tableFont = CreateFont(Config.FontSize);
+        var textSize = MeasureText("A", tableFont);
 
         var textOption = new RichTextOptions(tableFont)
         {
@@ -228,39 +228,39 @@ public class TableGenerate : ImageGeneratorBase, IImageGenerator<TableBuilder>
             WordBreaking = WordBreaking.BreakAll
         };
 
-        int[] rowHeights = new int[_currentBuilder.Rows.Count + 1];
-        int[] columnWidths = new int[_currentBuilder.Header.Count];
+        var rowHeights = new int[_currentBuilder.Rows.Count + 1];
+        var columnWidths = new int[_currentBuilder.Header.Count];
 
-        for (int j = 0; j < _currentBuilder.Header.Count; j++)
+        for (var j = 0; j < _currentBuilder.Header.Count; j++)
         {
-            FontRectangle size = TextMeasurer.MeasureSize(_currentBuilder.Header[j].Text, textOption);
+            var size = TextMeasurer.MeasureSize(_currentBuilder.Header[j].Text, textOption);
             rowHeights[0] = Math.Max(rowHeights[0], (int)size.Height);
             columnWidths[j] = Math.Max(columnWidths[j], (int)size.Width);
         }
 
-        for (int i = 0; i < _currentBuilder.Rows.Count; i++)
+        for (var i = 0; i < _currentBuilder.Rows.Count; i++)
         {
-            for (int j = 0; j < _currentBuilder.Rows[i].Content.Count; j++)
+            for (var j = 0; j < _currentBuilder.Rows[i].Content.Count; j++)
             {
-                FontRectangle size = TextMeasurer.MeasureSize(_currentBuilder.Rows[i].Content[j].Text, textOption);
+                var size = TextMeasurer.MeasureSize(_currentBuilder.Rows[i].Content[j].Text, textOption);
                 rowHeights[i + 1] = Math.Max(rowHeights[i + 1], (int)size.Height);
                 columnWidths[j] = Math.Max(columnWidths[j], (int)size.Width);
             }
         }
 
-        int totalWidth = columnWidths.Sum() + 2 * Gap * _currentBuilder.Header.Count;
+        var totalWidth = columnWidths.Sum() + 2 * Gap * _currentBuilder.Header.Count;
         if (totalWidth < Config.MinWidth)
         {
-            int extraWidth = (Config.MinWidth - totalWidth) / _currentBuilder.Header.Count;
-            for (int j = 0; j < columnWidths.Length; j++)
+            var extraWidth = (Config.MinWidth - totalWidth) / _currentBuilder.Header.Count;
+            for (var j = 0; j < columnWidths.Length; j++)
                 columnWidths[j] += extraWidth;
         }
 
         _rowHeights = rowHeights;
         _columnWidths = columnWidths;
 
-        int maxHeight = rowHeights.Sum(h => h + 2 * Gap) + TableTopMargin + TableBottomMargin;
-        int maxWidth = columnWidths.Sum() + 2 * Gap * _currentBuilder.Header.Count + 2 * TableMargin;
+        var maxHeight = rowHeights.Sum(h => h + 2 * Gap) + TableTopMargin + TableBottomMargin;
+        var maxWidth = columnWidths.Sum() + 2 * Gap * _currentBuilder.Header.Count + 2 * TableMargin;
 
         return (maxWidth + 2 * CardMargin, maxHeight + CardTopMargin + CardBottomMargin);
     }
@@ -269,12 +269,12 @@ public class TableGenerate : ImageGeneratorBase, IImageGenerator<TableBuilder>
     {
         if (_currentBuilder == null) throw new InvalidOperationException("Builder not set");
 
-        Font tableFont = CreateFont(Config.FontSize);
-        Font titleFont = CreateFont(Config.TitleFontSize);
-        Font signFont = CreateFont(Config.SignatureFontSize);
+        var tableFont = CreateFont(Config.FontSize);
+        var titleFont = CreateFont(Config.TitleFontSize);
+        var signFont = CreateFont(Config.SignatureFontSize);
 
-        int contentWidth = width - 2 * CardMargin;
-        int contentHeight = height - CardTopMargin - CardBottomMargin;
+        var contentWidth = width - 2 * CardMargin;
+        var contentHeight = height - CardTopMargin - CardBottomMargin;
 
         DrawCardBackgroundWithGlassEffect(ctx, CardMargin, CardTopMargin, contentWidth, contentHeight);
         DrawTitle(ctx, Config.Title, titleFont, CardMargin, CardTopMargin + 30, contentWidth);
@@ -288,12 +288,12 @@ public class TableGenerate : ImageGeneratorBase, IImageGenerator<TableBuilder>
 
     private void DrawHeaderText(IImageProcessingContext ctx, TableBuilder builder, Font tableFont)
     {
-        int xOffset = CardMargin + TableMargin;
-        FontRectangle textSize = MeasureText("A", tableFont);
+        var xOffset = CardMargin + TableMargin;
+        var textSize = MeasureText("A", tableFont);
 
-        for (int j = 0; j < builder.Header.Count; j++)
+        for (var j = 0; j < builder.Header.Count; j++)
         {
-            TableCell cell = builder.Header[j];
+            var cell = builder.Header[j];
             var cellRect = new RectangleF(xOffset, CardTopMargin + TableTopMargin, _columnWidths[j] + 2 * Gap, _rowHeights[0] + 2 * Gap);
 
             if (cell.UseBackgroundColor)
@@ -315,21 +315,21 @@ public class TableGenerate : ImageGeneratorBase, IImageGenerator<TableBuilder>
 
     private void DrawContentText(IImageProcessingContext ctx, TableBuilder builder, Font tableFont)
     {
-        int yOffset = CardTopMargin + TableTopMargin + _rowHeights[0] + 2 * Gap;
-        FontRectangle textSize = MeasureText("A", tableFont);
+        var yOffset = CardTopMargin + TableTopMargin + _rowHeights[0] + 2 * Gap;
+        var textSize = MeasureText("A", tableFont);
 
-        for (int i = 0; i < builder.Rows.Count; i++)
+        for (var i = 0; i < builder.Rows.Count; i++)
         {
-            int xOffset = CardMargin + TableMargin;
-            for (int j = 0; j < builder.Rows[i].Content.Count; j++)
+            var xOffset = CardMargin + TableMargin;
+            for (var j = 0; j < builder.Rows[i].Content.Count; j++)
             {
-                TableCell cell = builder.Rows[i].Content[j];
+                var cell = builder.Rows[i].Content[j];
                 var cellRect = new RectangleF(xOffset, yOffset, _columnWidths[j] + 2 * Gap, _rowHeights[i + 1] + 2 * Gap);
 
                 if (cell.UseBackgroundColor)
                     ctx.Fill(cell.BackgroundColor, cellRect);
 
-                float textY = yOffset + (_rowHeights[i + 1] / 2) + Gap;
+                var textY = yOffset + (_rowHeights[i + 1] / 2) + Gap;
                 var textOption = new RichTextOptions(tableFont)
                 {
                     HorizontalAlignment = HorizontalAlignment.Center,
@@ -348,11 +348,11 @@ public class TableGenerate : ImageGeneratorBase, IImageGenerator<TableBuilder>
 
     private void DrawVerticalLines(IImageProcessingContext ctx, TableBuilder builder, int maxWidth, int maxHeight)
     {
-        int xOffset = CardMargin + TableMargin;
-        int lineStartY = CardTopMargin + TableTopMargin;
-        int lineEndY = CardTopMargin + TableTopMargin + maxHeight - TableTopMargin - TableBottomMargin;
+        var xOffset = CardMargin + TableMargin;
+        var lineStartY = CardTopMargin + TableTopMargin;
+        var lineEndY = CardTopMargin + TableTopMargin + maxHeight - TableTopMargin - TableBottomMargin;
 
-        for (int j = 0; j <= builder.Header.Count; j++)
+        for (var j = 0; j <= builder.Header.Count; j++)
         {
             DrawVerticalLine(ctx, xOffset, lineStartY, lineEndY);
             if (j < builder.Header.Count)
@@ -362,18 +362,18 @@ public class TableGenerate : ImageGeneratorBase, IImageGenerator<TableBuilder>
 
     private void DrawHorizontalLines(IImageProcessingContext ctx, TableBuilder builder, int maxWidth, int maxHeight)
     {
-        int yOffset = CardTopMargin + TableTopMargin;
-        int lineStartX = CardMargin + TableMargin;
-        int lineEndX = CardMargin + TableMargin + maxWidth - 2 * TableMargin;
+        var yOffset = CardTopMargin + TableTopMargin;
+        var lineStartX = CardMargin + TableMargin;
+        var lineEndX = CardMargin + TableMargin + maxWidth - 2 * TableMargin;
 
-        for (int i = 0; i <= builder.Rows.Count; i++)
+        for (var i = 0; i <= builder.Rows.Count; i++)
         {
             DrawHorizontalLine(ctx, lineStartX, yOffset, lineEndX);
             if (i < builder.Rows.Count)
                 yOffset += _rowHeights[i] + 2 * Gap;
         }
 
-        int bottomY = CardTopMargin + TableTopMargin + maxHeight - TableTopMargin - TableBottomMargin;
+        var bottomY = CardTopMargin + TableTopMargin + maxHeight - TableTopMargin - TableBottomMargin;
         DrawHorizontalLine(ctx, lineStartX, bottomY, lineEndX);
     }
 }

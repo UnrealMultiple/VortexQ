@@ -41,9 +41,9 @@ public class CoreLoginService(ILogger<CoreLoginService> logger, IOptions<CoreCon
         _bot.EventInvoker.RegisterEvent<BotNewDeviceVerifyEvent>(HandleNewDeviceVerify);
         _bot.EventInvoker.RegisterEvent<BotMessageEvent>(HandleMessage);
 
-        uint uin = _configuration.Login.Uin;
-        string password = _configuration.Login.Password ?? string.Empty;
-        bool result = await _bot.Login(uin, password, token);
+        var uin = _configuration.Login.Uin;
+        var password = _configuration.Login.Password ?? string.Empty;
+        var result = await _bot.Login(uin, password, token);
         if (!result)
         {
             _logger.LogLoginFailed();
@@ -65,13 +65,13 @@ public class CoreLoginService(ILogger<CoreLoginService> logger, IOptions<CoreCon
 
     private async Task CommandGroupAdapter(BotContext ctx, BotMessageEvent e)
     {
-        string text = e.Message.Entities.GetEnitys<TextEntity>().ToJoinedString(x => x.Text, "");
+        var text = e.Message.Entities.GetEnitys<TextEntity>().ToJoinedString(x => x.Text, "");
         await _cmd.ExecuteGroupAsync(text, e, _vortexContext);
     }
 
     private async Task CommandPrivateAdapter(BotContext ctx, BotMessageEvent e)
     {
-        string text = e.Message.Entities.GetEnitys<TextEntity>().ToJoinedString(x => x.Text, "");
+        var text = e.Message.Entities.GetEnitys<TextEntity>().ToJoinedString(x => x.Text, "");
         await _cmd.ExecutePrivateAsync(text, e, _vortexContext);
     }
 
@@ -87,7 +87,7 @@ public class CoreLoginService(ILogger<CoreLoginService> logger, IOptions<CoreCon
         await Task.Run(() =>
         {
             Console.WriteLine("Please enter the SMS code:");
-            string? code = Console.ReadLine();
+            var code = Console.ReadLine();
             if (string.IsNullOrEmpty(code))
             {
                 _logger.LogSmsCodeEmpty();
@@ -101,13 +101,13 @@ public class CoreLoginService(ILogger<CoreLoginService> logger, IOptions<CoreCon
 
     private async Task HandleCaptcha(BotContext bot, BotCaptchaEvent @event)
     {
-        (string? ticket, string? randstr) = await _captchaResolver.ResolveCaptchaAsync(@event.CaptchaUrl, _cts?.Token ?? default);
+        (var ticket, var randstr) = await _captchaResolver.ResolveCaptchaAsync(@event.CaptchaUrl, _cts?.Token ?? default);
         _bot.SubmitCaptcha(ticket, randstr);
     }
 
     private async Task HandleRefreshKeystore(BotContext bot, BotRefreshKeystoreEvent @event)
     {
-        BotKeystore keystore = @event.Keystore;
+        var keystore = @event.Keystore;
         await File.WriteAllBytesAsync(
             $"{keystore.Uin}.keystore",
             JsonUtility.SerializeToUtf8Bytes(keystore),
@@ -117,7 +117,7 @@ public class CoreLoginService(ILogger<CoreLoginService> logger, IOptions<CoreCon
 
     private void HandleQrCodeQuery(BotContext bot, BotQrCodeQueryEvent @event)
     {
-        MSLogLevel level = @event.State switch
+        var level = @event.State switch
         {
             TransEmpState.Confirmed or
             TransEmpState.WaitingForScan or

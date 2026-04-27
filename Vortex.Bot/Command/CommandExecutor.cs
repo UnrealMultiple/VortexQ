@@ -55,20 +55,20 @@ internal sealed class CommandExecutor : CommandBase
 
     private async Task<ParseResult> ExecuteAsync(CommandArgs args, int current)
     {
-        List<string> parameters = args.Params;
-        ValidationResult validation = _argumentBinder.GetValidationRules(current, _executorType, _minArgs);
+        var parameters = args.Params;
+        var validation = _argumentBinder.GetValidationRules(current, _executorType, _minArgs);
 
         if (parameters.Count < validation.MinArgs)
             return CreateResult(validation.MinArgs - parameters.Count);
 
         if (_executorType == ExecutorType.Normal)
         {
-            int expectedCount = _argumentBinder.ParameterInfo.Split('<').Length - 1 + current;
+            var expectedCount = _argumentBinder.ParameterInfo.Split('<').Length - 1 + current;
             if (parameters.Count != expectedCount)
                 return CreateResult(Math.Abs(expectedCount - parameters.Count));
         }
 
-        object?[]? parsedArgs = _argumentBinder.ParseArguments(parameters, current);
+        var parsedArgs = _argumentBinder.ParseArguments(parameters, current);
         return parsedArgs == null ? CreateResult(1) : await InvokeMethodAsync(args, parsedArgs);
     }
 
@@ -76,14 +76,14 @@ internal sealed class CommandExecutor : CommandBase
     {
         invokeArgs[0] = args;
 
-        PermissionCheckResult permResult = await CheckPermissionAsync(args);
+        var permResult = await CheckPermissionAsync(args);
         if (permResult.Result != PermissionResult.Granted)
         {
             await args.ReplyWithAtAsync(permResult.DenyMessage ?? "你没有权限执行此指令。");
             return CreateResult(0);
         }
 
-        object? result = _method.Invoke(null, invokeArgs);
+        var result = _method.Invoke(null, invokeArgs);
         if (result is Task task)
             await task;
 

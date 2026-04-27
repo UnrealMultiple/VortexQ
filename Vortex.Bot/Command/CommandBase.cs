@@ -26,26 +26,20 @@ internal abstract class CommandBase
         Permissions = [];
     }
 
-    public bool CanExecute(CommandArgs args)
-    {
-        return Permissions.Length == 0 ? true : Permissions.All(args.HasPermission);
-    }
+    public bool CanExecute(CommandArgs args) => Permissions.Length == 0 || Permissions.All(args.HasPermission);
 
-    public string[] GetMissingPermissions(CommandArgs args)
-    {
-        return [.. Permissions.Where(p => !args.HasPermission(p))];
-    }
+    public string[] GetMissingPermissions(CommandArgs args) => [.. Permissions.Where(p => !args.HasPermission(p))];
 
     protected async Task<PermissionCheckResult> CheckPermissionAsync(CommandArgs args)
     {
-        PermissionCheckResult result = await CommandEvents.TriggerPermissionChecking(args, Permissions);
+        var result = await CommandEvents.TriggerPermissionChecking(args, Permissions);
 
         if (result.Result != PermissionResult.Default)
             return result;
 
         if (Permissions.Length > 0)
         {
-            string[] missingPermissions = GetMissingPermissions(args);
+            var missingPermissions = GetMissingPermissions(args);
             if (missingPermissions.Length > 0)
             {
                 return new PermissionCheckResult
@@ -65,7 +59,7 @@ internal abstract class CommandBase
 
         if (Permissions.Length > 0)
         {
-            string[] missingPermissions = GetMissingPermissions(args);
+            var missingPermissions = GetMissingPermissions(args);
             if (missingPermissions.Length > 0)
             {
                 errorMessage = $"{NoPermissionMessage} 缺少权限: {string.Join(", ", missingPermissions)}";

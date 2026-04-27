@@ -18,9 +18,9 @@ public class ClientConnectionService(ILogger<ClientConnectionService> logger)
 
     public ClientConnection RegisterClient(ClientIdentityPacket packet, TcpClient tcpClient, string endpoint)
     {
-        int sessionId = Interlocked.Increment(ref _nextSessionId);
+        var sessionId = Interlocked.Increment(ref _nextSessionId);
 
-        ClientConnection client = new ClientConnection
+        var client = new ClientConnection
         {
             ClientId = packet.ClientId,
             ClientName = packet.ClientName,
@@ -86,7 +86,7 @@ public class ClientConnectionService(ILogger<ClientConnectionService> logger)
 
     public async Task DisconnectAllAsync()
     {
-        List<Guid> clientIds = _clientsById.Keys.ToList();
+        var clientIds = _clientsById.Keys.ToList();
         foreach (var clientId in clientIds)
         {
             await RemoveClientAsync(clientId);

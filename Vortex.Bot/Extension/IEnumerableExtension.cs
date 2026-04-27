@@ -9,8 +9,8 @@ public static class IEnumerableExtension
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(separator);
-        StringBuilder sb = new StringBuilder();
-        using IEnumerator<T> enumerator = source.GetEnumerator();
+        var sb = new StringBuilder();
+        using var enumerator = source.GetEnumerator();
         if (enumerator.MoveNext())
         {
             sb.Append(enumerator.Current);
@@ -33,8 +33,8 @@ public static class IEnumerableExtension
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(selector);
         ArgumentNullException.ThrowIfNull(separator);
-        StringBuilder sb = new StringBuilder();
-        using IEnumerator<T> enumerator = source.GetEnumerator();
+        var sb = new StringBuilder();
+        using var enumerator = source.GetEnumerator();
         if (enumerator.MoveNext())
         {
             sb.Append(selector(enumerator.Current));

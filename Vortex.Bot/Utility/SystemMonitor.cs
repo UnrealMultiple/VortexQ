@@ -13,7 +13,6 @@ public sealed class SystemMonitor : IDisposable
     private CpuUsageData _prevCpuData;
     private long _prevNetworkTimestamp;
 
-    // 监控属性
     public float CpuUsagePercent { get; private set; }
     public float MemoryUsagePercent { get; private set; }
     public long TotalPhysicalMemory { get; private set; }
@@ -57,9 +56,9 @@ public sealed class SystemMonitor : IDisposable
 
     private void UpdateCpuUsage()
     {
-        CpuUsageData current = GetCpuData();
-        ulong totalDiff = current.TotalTime - _prevCpuData.TotalTime;
-        ulong idleDiff = current.IdleTime - _prevCpuData.IdleTime;
+        var current = GetCpuData();
+        var totalDiff = current.TotalTime - _prevCpuData.TotalTime;
+        var idleDiff = current.IdleTime - _prevCpuData.IdleTime;
 
         if (totalDiff > 0 && idleDiff <= totalDiff)
         {
@@ -77,7 +76,6 @@ public sealed class SystemMonitor : IDisposable
             : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? GetMacCpuData() : throw new PlatformNotSupportedException();
     }
 
-    // Windows实现
     [StructLayout(LayoutKind.Sequential)]
     struct FILETIME { public uint dwLowDateTime; public uint dwHighDateTime; }
 
@@ -95,11 +93,10 @@ public sealed class SystemMonitor : IDisposable
         };
     }
 
-    // Linux实现
     private static CpuUsageData GetLinuxCpuData()
     {
-        string[] lines = File.ReadAllLines("/proc/stat");
-        string[] values = lines.First(l => l.StartsWith("cpu ")).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        var lines = File.ReadAllLines("/proc/stat");
+        var values = lines.First(l => l.StartsWith("cpu ")).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
         return new CpuUsageData
         {
             TotalTime = values.Skip(1).Take(3).Select(ulong.Parse).Aggregate((a, b) => a + b),
@@ -107,15 +104,14 @@ public sealed class SystemMonitor : IDisposable
         };
     }
 
-    // macOS实现
     [DllImport("libSystem.dylib")]
     static extern int sysctlbyname(string name, IntPtr ptr, ref uint size, IntPtr newp, uint newlen);
 
     private static CpuUsageData GetMacCpuData()
     {
         const string name = "kern.cp_time";
-        uint size = (uint)Marshal.SizeOf<CpuUsageData>();
-        nint ptr = Marshal.AllocHGlobal((int)size);
+        var size = (uint)Marshal.SizeOf<CpuUsageData>();
+        var ptr = Marshal.AllocHGlobal((int)size);
         try
         {
             return sysctlbyname(name, ptr, ref size, IntPtr.Zero, 0) == 0
@@ -145,7 +141,6 @@ public sealed class SystemMonitor : IDisposable
             MemoryUsagePercent = (float)(UsedPhysicalMemory * 100.0 / TotalPhysicalMemory);
     }
 
-    // Windows内存实现
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
     private class MEMORYSTATUSEX
     {
@@ -182,12 +177,11 @@ public sealed class SystemMonitor : IDisposable
             AvailablePhysicalMemory = (long)memStatus.ullAvailPhys;
     }
 
-    // Linux内存实现
     private void InitLinuxMemory()
     {
         try
         {
-            string[] lines = File.ReadAllLines("/proc/meminfo");
+            var lines = File.ReadAllLines("/proc/meminfo");
             TotalPhysicalMemory = GetMemValue(lines, "MemTotal") * 1024;
             AvailablePhysicalMemory = GetMemValue(lines, "MemAvailable") * 1024;
         }
@@ -198,15 +192,14 @@ public sealed class SystemMonitor : IDisposable
     {
         try
         {
-            string[] lines = File.ReadAllLines("/proc/meminfo");
-            string? memAvailable = lines.FirstOrDefault(l => l.StartsWith("MemAvailable"));
+            var lines = File.ReadAllLines("/proc/meminfo");
+            var memAvailable = lines.FirstOrDefault(l => l.StartsWith("MemAvailable"));
             if (memAvailable != null)
             {
                 AvailablePhysicalMemory = GetMemValue(lines, "MemAvailable") * 1024;
             }
             else
             {
-                // 如果没有MemAvailable，则使用MemFree + Buffers + Cached
                 AvailablePhysicalMemory = (GetMemValue(lines, "MemFree") +
                                          GetMemValue(lines, "Buffers") +
                                          GetMemValue(lines, "Cached")) * 1024;
@@ -215,7 +208,6 @@ public sealed class SystemMonitor : IDisposable
         catch (Exception ex) { Debug.WriteLine($"[Linux内存更新错误] {ex.Message}"); }
     }
 
-    // macOS内存实现
     [DllImport("libSystem.dylib")]
     static extern int sysctlbyname(string name, out long value, ref IntPtr size, IntPtr newp, uint newlen);
 
@@ -223,12 +215,9 @@ public sealed class SystemMonitor : IDisposable
     {
         try
         {
-            // 获取总内存
             IntPtr len = sizeof(long);
             if (sysctlbyname("hw.memsize", out long total, ref len, IntPtr.Zero, 0) == 0)
                 TotalPhysicalMemory = total;
-
-            // 初始化可用内存
             UpdateMacMemory();
         }
         catch (Exception ex) { Debug.WriteLine($"[macOS内存初始化错误] {ex.Message}"); }
@@ -240,15 +229,15 @@ public sealed class SystemMonitor : IDisposable
         {
             var psi = new ProcessStartInfo("vm_stat") { RedirectStandardOutput = true };
             using var process = Process.Start(psi);
-            string? output = process?.StandardOutput.ReadToEnd();
+            var output = process?.StandardOutput.ReadToEnd();
             process?.WaitForExit();
 
             if (string.IsNullOrEmpty(output)) return;
 
-            string[] lines = output.Split('\n');
-            long free = GetMacMemValue(lines, "Pages free");
-            long speculative = GetMacMemValue(lines, "Pages speculative");
-            long pageSize = GetPageSize();
+            var lines = output.Split('\n');
+            var free = GetMacMemValue(lines, "Pages free");
+            var speculative = GetMacMemValue(lines, "Pages speculative");
+            var pageSize = GetPageSize();
             AvailablePhysicalMemory = (free + speculative) * pageSize;
         }
         catch (Exception ex) { Debug.WriteLine($"[macOS内存更新错误] {ex.Message}"); }
@@ -256,22 +245,22 @@ public sealed class SystemMonitor : IDisposable
 
     private static long GetMemValue(string[] lines, string key)
     {
-        string? line = lines.FirstOrDefault(l => l.StartsWith(key));
+        var line = lines.FirstOrDefault(l => l.StartsWith(key));
         if (line == null) return 0;
 
-        string[] parts = line.Split([' '], StringSplitOptions.RemoveEmptyEntries);
+        var parts = line.Split([' '], StringSplitOptions.RemoveEmptyEntries);
         return parts.Length < 2 ? 0 : long.TryParse(parts[1], out long value) ? value : 0;
     }
 
     private static long GetMacMemValue(string[] lines, string key)
     {
-        string? line = lines.FirstOrDefault(l => l.Contains(key));
+        var line = lines.FirstOrDefault(l => l.Contains(key));
         if (line == null) return 0;
 
-        string[] parts = line.Split(':');
+        var parts = line.Split(':');
         if (parts.Length < 2) return 0;
 
-        string valueStr = parts[1].Trim().Split('.')[0];
+        var valueStr = parts[1].Trim().Split('.')[0];
         return long.TryParse(valueStr, out long value) ? value : 0;
     }
 
@@ -290,7 +279,7 @@ public sealed class SystemMonitor : IDisposable
     {
         try
         {
-            IEnumerable<NetworkInterface> interfaces = NetworkInterface.GetAllNetworkInterfaces()
+            var interfaces = NetworkInterface.GetAllNetworkInterfaces()
                 .Where(n => n.OperationalStatus == OperationalStatus.Up)
                 .Where(n => !n.Description.Contains("Virtual"))
                 .Where(n => !n.Description.Contains("Pseudo"))
@@ -302,8 +291,8 @@ public sealed class SystemMonitor : IDisposable
                 SentBytes = interfaces.Sum(n => n.GetIPStatistics().BytesSent)
             };
 
-            long timestamp = Stopwatch.GetTimestamp();
-            double elapsed = (timestamp - _prevNetworkTimestamp) / (double)Stopwatch.Frequency;
+            var timestamp = Stopwatch.GetTimestamp();
+            var elapsed = (timestamp - _prevNetworkTimestamp) / (double)Stopwatch.Frequency;
 
             if (elapsed > 0.5 && _prevNetworkData.ReceivedBytes != 0)
             {

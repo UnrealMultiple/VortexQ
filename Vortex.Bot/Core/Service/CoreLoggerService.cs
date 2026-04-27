@@ -40,7 +40,7 @@ public partial class CoreLoggerService(ILogger<CoreLoggerService> logger, IOptio
 
     private void HandleLog(BotContext bot, BotLogEvent @event)
     {
-        ILogger logger = _loggers.GetOrAdd(@event.Tag, _loggerFactory.CreateLogger(InferFullName(@event.Tag)));
+        var logger = _loggers.GetOrAdd(@event.Tag, _loggerFactory.CreateLogger(InferFullName(@event.Tag)));
         LoggerUtility.LogBotMessage(logger, (MSLogLevel)@event.Level, @event.Message, @event.Exception);
     }
 
@@ -56,7 +56,7 @@ public partial class CoreLoggerService(ILogger<CoreLoggerService> logger, IOptio
     [UnconditionalSuppressMessage("Trimming", "IL2026")]
     private static string InferFullName(string tag)
     {
-        foreach (Type type in typeof(BotContext).Assembly.GetTypes())
+        foreach (var type in typeof(BotContext).Assembly.GetTypes())
         {
             if (type.Name == tag) return type.FullName ?? type.Name;
         }
@@ -67,7 +67,6 @@ public partial class CoreLoggerService(ILogger<CoreLoggerService> logger, IOptio
     public void Dispose()
     {
         _levelChangeHandlerDisposable?.Dispose();
-
         GC.SuppressFinalize(this);
     }
 

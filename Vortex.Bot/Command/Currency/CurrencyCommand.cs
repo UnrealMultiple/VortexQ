@@ -18,8 +18,8 @@ public static class CurrencyCommand
         [Main]
         public static async Task Execute(CommandArgs args, [Param("QQ号(可选)")] long? targetUserId = null)
         {
-            long userId = targetUserId ?? args.SenderUin;
-            long balance = Currency.GetBalance(userId);
+            var userId = targetUserId ?? args.SenderUin;
+            var balance = Currency.GetBalance(userId);
 
             if (targetUserId.HasValue)
             {
@@ -42,7 +42,7 @@ public static class CurrencyCommand
         {
             try
             {
-                Currency currency = Currency.Add(userId, amount);
+                var currency = Currency.Add(userId, amount);
                 await args.ReplyWithAtAsync($"已给用户 {userId} 增加 {amount} 金币\n当前余额: {currency.Num}");
             }
             catch (Exception ex)
@@ -62,7 +62,7 @@ public static class CurrencyCommand
         {
             try
             {
-                Currency currency = Currency.Deduct(userId, amount);
+                var currency = Currency.Deduct(userId, amount);
                 await args.ReplyWithAtAsync($"已从用户 {userId} 扣除 {amount} 金币\n当前余额: {currency.Num}");
             }
             catch (Exception ex)
@@ -82,7 +82,7 @@ public static class CurrencyCommand
         {
             try
             {
-                Currency currency = Currency.Set(userId, amount);
+                var currency = Currency.Set(userId, amount);
                 await args.ReplyWithAtAsync($"已设置用户 {userId} 的金币为 {amount}\n当前余额: {currency.Num}");
             }
             catch (Exception ex)
@@ -113,7 +113,7 @@ public static class CurrencyCommand
                 .SetTitle("金币排行榜")
                 .SetMemberUin(args.SenderUin);
 
-            for (int i = 0; i < topList.Count; i++)
+            for (var i = 0; i < topList.Count; i++)
             {
                 builder.AddRow((i + 1).ToString(), topList[i].UserId.ToString(), topList[i].Num.ToString());
             }

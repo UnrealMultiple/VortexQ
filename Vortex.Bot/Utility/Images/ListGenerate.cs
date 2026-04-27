@@ -206,8 +206,8 @@ public class ListGenerate : ImageGeneratorBase, IImageGenerator<ListBuilder>
     {
         if (_currentBuilder == null) throw new InvalidOperationException("Builder not set");
 
-        Font tableFont = CreateFont(Config.FontSize);
-        FontRectangle textSize = MeasureText("A", tableFont);
+        var tableFont = CreateFont(Config.FontSize);
+        var textSize = MeasureText("A", tableFont);
 
         var textOption = new RichTextOptions(tableFont)
         {
@@ -216,18 +216,18 @@ public class ListGenerate : ImageGeneratorBase, IImageGenerator<ListBuilder>
             WordBreaking = WordBreaking.BreakAll
         };
 
-        int[] rowHeights = new int[_currentBuilder.Items.Count];
-        int width = (int)textSize.Width;
+        var rowHeights = new int[_currentBuilder.Items.Count];
+        var width = (int)textSize.Width;
 
-        for (int i = 0; i < _currentBuilder.Items.Count; i++)
+        for (var i = 0; i < _currentBuilder.Items.Count; i++)
         {
-            FontRectangle size = TextMeasurer.MeasureSize(_currentBuilder.Items[i].Text, textOption);
+            var size = TextMeasurer.MeasureSize(_currentBuilder.Items[i].Text, textOption);
             rowHeights[i] = (int)size.Height;
             width = (int)Math.Max(Config.MinWidth, Math.Max(width, size.Width));
         }
 
-        int maxWidth = width + 2 * ListMargin;
-        int maxHeight = rowHeights.Sum(h => h + 2 * Gap) + ListTopMargin + ListBottomMargin;
+        var maxWidth = width + 2 * ListMargin;
+        var maxHeight = rowHeights.Sum(h => h + 2 * Gap) + ListTopMargin + ListBottomMargin;
 
         _rowHeights = rowHeights;
 
@@ -238,12 +238,12 @@ public class ListGenerate : ImageGeneratorBase, IImageGenerator<ListBuilder>
     {
         if (_currentBuilder == null) throw new InvalidOperationException("Builder not set");
 
-        Font tableFont = CreateFont(Config.FontSize);
-        Font titleFont = CreateFont(Config.TitleFontSize);
-        Font signFont = CreateFont(Config.SignatureFontSize);
+        var tableFont = CreateFont(Config.FontSize);
+        var titleFont = CreateFont(Config.TitleFontSize);
+        var signFont = CreateFont(Config.SignatureFontSize);
 
-        int contentWidth = width - 2 * CardMargin;
-        int contentHeight = height - CardTopMargin - CardBottomMargin;
+        var contentWidth = width - 2 * CardMargin;
+        var contentHeight = height - CardTopMargin - CardBottomMargin;
 
         DrawCardBackgroundWithGlassEffect(ctx, CardMargin, CardTopMargin, contentWidth, contentHeight);
         DrawTitle(ctx, Config.Title, titleFont, CardMargin, CardTopMargin + 30, contentWidth);
@@ -257,10 +257,10 @@ public class ListGenerate : ImageGeneratorBase, IImageGenerator<ListBuilder>
 
     private void DrawContentText(IImageProcessingContext ctx, ListBuilder builder, Font tableFont, int maxWidth)
     {
-        int yOffset = CardTopMargin + ListTopMargin;
-        FontRectangle textSize = MeasureText("A", tableFont);
+        var yOffset = CardTopMargin + ListTopMargin;
+        var textSize = MeasureText("A", tableFont);
 
-        for (int i = 0; i < builder.Items.Count; i++)
+        for (var i = 0; i < builder.Items.Count; i++)
         {
             var textOption = new RichTextOptions(tableFont)
             {
@@ -271,7 +271,7 @@ public class ListGenerate : ImageGeneratorBase, IImageGenerator<ListBuilder>
                 Origin = new PointF(CardMargin + (maxWidth / 2), yOffset + (_rowHeights[i] / 2) + Gap)
             };
 
-            Color textColor = builder.Items[i].UseTextColor ? builder.Items[i].TextColor : ListFontColor;
+            var textColor = builder.Items[i].UseTextColor ? builder.Items[i].TextColor : ListFontColor;
             ctx.DrawText(textOption, builder.Items[i].Text, textColor);
             yOffset += _rowHeights[i] + 2 * Gap;
         }
@@ -279,18 +279,18 @@ public class ListGenerate : ImageGeneratorBase, IImageGenerator<ListBuilder>
 
     private void DrawHorizontalLines(IImageProcessingContext ctx, ListBuilder builder, int maxWidth, int maxHeight)
     {
-        int yOffset = CardTopMargin + ListTopMargin;
-        int lineStartX = CardMargin + ListMargin;
-        int lineEndX = CardMargin + ListMargin + maxWidth - 2 * ListMargin;
+        var yOffset = CardTopMargin + ListTopMargin;
+        var lineStartX = CardMargin + ListMargin;
+        var lineEndX = CardMargin + ListMargin + maxWidth - 2 * ListMargin;
 
-        for (int i = 0; i <= builder.Items.Count; i++)
+        for (var i = 0; i <= builder.Items.Count; i++)
         {
             DrawHorizontalLine(ctx, lineStartX, yOffset, lineEndX);
             if (i < builder.Items.Count)
                 yOffset += _rowHeights[i] + 2 * Gap;
         }
 
-        int bottomY = CardTopMargin + ListTopMargin + maxHeight - ListTopMargin - ListBottomMargin;
+        var bottomY = CardTopMargin + ListTopMargin + maxHeight - ListTopMargin - ListBottomMargin;
         DrawHorizontalLine(ctx, lineStartX, bottomY, lineEndX);
     }
 }

@@ -7,14 +7,14 @@ public class QrCodeUtility
 {
     public static string GenerateAscii(string payload, bool compatible)
     {
-        QrCode qrcode = QrCode.EncodeText(payload, QrCode.Ecc.Low);
-        StringBuilder result = new();
-        for (int y = 0; y < qrcode.Size; y += 2)
+        var qrcode = QrCode.EncodeText(payload, QrCode.Ecc.Low);
+        var result = new StringBuilder();
+        for (var y = 0; y < qrcode.Size; y += 2)
         {
-            for (int x = 0; x < qrcode.Size; x++)
+            for (var x = 0; x < qrcode.Size; x++)
             {
-                bool top = qrcode.GetModule(x, y);
-                bool bottom = qrcode.GetModule(x, y + 1);
+                var top = qrcode.GetModule(x, y);
+                var bottom = qrcode.GetModule(x, y + 1);
 
                 result.Append((top, bottom) switch
                 {

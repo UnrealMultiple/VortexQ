@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Core.Service;
-using Vortex.Protocol.Packets;
 
 namespace Vortex.Bot.Command.Terraria;
 
@@ -14,20 +13,20 @@ public static class ServerResetCommand
     [Main]
     public static async Task ResetServer(GroupCommandArgs args)
     {
-        TerrariaServerService? serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
+        var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
         if (serverManager == null)
         {
             await args.ReplyWithAtAsync("服务器管理器未初始化");
             return;
         }
 
-        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out TerrariaServer? server) || server == null)
+        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out var server) || server == null)
         {
             await args.ReplyWithAtAsync("请先使用 '切换 <名称>' 选择要操作的服务器!");
             return;
         }
 
-        List<string> resetCommands = new List<string>();
+        var resetCommands = new List<string>();
         var startArgs = "";
 
         foreach (var param in args.Params)
@@ -44,7 +43,7 @@ public static class ServerResetCommand
 
         await args.ReplyWithAtAsync($"[{server.Config.Name}] 正在重置服务器...");
 
-        ServerResetPacketResponse? result = await server.ResetAsync(resetCommands, startArgs.Trim());
+        var result = await server.ResetAsync(resetCommands, startArgs.Trim());
 
         if (result?.Success == true)
         {

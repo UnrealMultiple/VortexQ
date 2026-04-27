@@ -2,8 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Core.Service;
 using Vortex.Bot.Utility.Images;
-using Vortex.Protocol.Models;
-using Vortex.Protocol.Packets;
 
 namespace Vortex.Bot.Command.Terraria;
 
@@ -16,31 +14,31 @@ public static class ServerInfoCommand
     [Main]
     public static async Task ShowServerInfo(GroupCommandArgs args)
     {
-        TerrariaServerService? serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
+        var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
         if (serverManager == null)
         {
             await args.ReplyWithAtAsync("服务器管理器未初始化");
             return;
         }
 
-        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out TerrariaServer? server) || server == null)
+        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out var server) || server == null)
         {
             await args.ReplyWithAtAsync("请先使用 '切换 <名称>' 选择要操作的服务器!");
             return;
         }
 
-        ServerStatusPacketResponse? status = await server.GetStatusAsync();
+        var status = await server.GetStatusAsync();
 
         if (status?.Success == true)
         {
-            TableBuilder tableBuilder = new TableBuilder()
+            var tableBuilder = new TableBuilder()
                 .SetHeader("插件名称", "说明", "作者")
                 .SetTitle($"{server.Config.Name} 插件列表")
                 .SetMemberUin(args.SenderUin);
 
             if (status.Plugins != null)
             {
-                foreach (Plugin plugin in status.Plugins)
+                foreach (var plugin in status.Plugins)
                 {
                     tableBuilder.AddRow(
                         plugin.Name ?? "Unknown",

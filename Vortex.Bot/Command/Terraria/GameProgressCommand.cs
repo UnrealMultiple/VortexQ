@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Core.Service;
 using Vortex.Bot.Utility.Images;
-using Vortex.Protocol.Packets;
 
 namespace Vortex.Bot.Command.Terraria;
 
@@ -15,26 +14,26 @@ public static class GameProgressCommand
     [Main]
     public static async Task ShowGameProgress(GroupCommandArgs args)
     {
-        TerrariaServerService? serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
+        var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
         if (serverManager == null)
         {
             await args.ReplyWithAtAsync("服务器管理器未初始化");
             return;
         }
 
-        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out TerrariaServer? server) || server == null)
+        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out var server) || server == null)
         {
             await args.ReplyWithAtAsync("请先使用 '切换 <名称>' 选择要操作的服务器!");
             return;
         }
 
-        GameProgressPacketResponse? progress = await server.GetGameProgressAsync();
+        var progress = await server.GetGameProgressAsync();
 
         if (progress?.Success == true && progress.Progress != null)
         {
             try
             {
-                ProgressBuilder builder = ProgressBuilder.Create()
+                var builder = ProgressBuilder.Create()
                     .SetServerName(server.Config.Name)
                     .SetTitle("Boss 击杀进度")
                     .SetItemsPerRow(4)
@@ -47,7 +46,7 @@ public static class GameProgressCommand
                     builder.AddBoss(bossName, imagePath, isKilled);
                 }
 
-                byte[] imageData = builder.Build();
+                var imageData = builder.Build();
                 await args.ReplyImageAsync(imageData);
             }
             catch (Exception ex)

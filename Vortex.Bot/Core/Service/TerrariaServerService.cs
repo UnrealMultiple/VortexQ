@@ -22,12 +22,12 @@ public class TerrariaServerService
         _logger = logger;
         _vortexServer = vortexServer;
 
-        TerrariaServerCollection? serversConfig = configuration.GetSection("TerrariaServers").Get<TerrariaServerCollection>();
+        var serversConfig = configuration.GetSection("TerrariaServers").Get<TerrariaServerCollection>();
         if (serversConfig?.Servers != null)
         {
-            foreach (TerrariaServerEnity config in serversConfig.Servers)
+            foreach (var config in serversConfig.Servers)
             {
-                TerrariaServer server = new TerrariaServer(config, vortexServer, logger);
+                var server = new TerrariaServer(config, vortexServer, logger);
                 _servers[config.Name] = server;
             }
         }
@@ -40,8 +40,8 @@ public class TerrariaServerService
     {
         try
         {
-            List<CharacterSelection> selections = CharacterSelection.GetAll();
-            foreach (CharacterSelection selection in selections)
+            var selections = CharacterSelection.GetAll();
+            foreach (var selection in selections)
             {
                 if (_servers.ContainsKey(selection.ServerName))
                 {
@@ -60,7 +60,7 @@ public class TerrariaServerService
 
     public TerrariaServer? GetServer(string name)
     {
-        _servers.TryGetValue(name, out TerrariaServer? server);
+        _servers.TryGetValue(name, out var server);
         return server;
     }
 
@@ -77,9 +77,7 @@ public class TerrariaServerService
     public bool TryGetUserServer(long userId, long groupId, out TerrariaServer? server)
     {
         server = null;
-        return _userServerSelections.TryGetValue((userId, groupId), out var serverName)
-            ? _servers.TryGetValue(serverName, out server)
-            : false;
+        return _userServerSelections.TryGetValue((userId, groupId), out var serverName) && _servers.TryGetValue(serverName, out server);
     }
 
     public void SetUserServer(long userId, long groupId, string serverName)
@@ -114,79 +112,79 @@ public class TerrariaServerService
 
     public async Task<ServerStatusPacketResponse?> GetServerStatusAsync(string serverName, int timeoutMs = 5000)
     {
-        if (!TryGetServer(serverName, out TerrariaServer? server) || server == null)
+        if (!TryGetServer(serverName, out var server) || server == null)
             return null;
 
-        Guid? clientId = server.GetOnlineClientId();
+        var clientId = server.GetOnlineClientId();
         if (clientId == null)
             return null;
 
-        ServerStatusPacket request = new ServerStatusPacket();
+        var request = new ServerStatusPacket();
         return await _vortexServer.RequestAsync<ServerStatusPacket, ServerStatusPacketResponse>(clientId.Value, request, timeoutMs);
     }
 
     public async Task<ServerOnlinePacketResponse?> GetServerOnlineAsync(string serverName, int timeoutMs = 5000)
     {
-        if (!TryGetServer(serverName, out TerrariaServer? server) || server == null)
+        if (!TryGetServer(serverName, out var server) || server == null)
             return null;
 
-        Guid? clientId = server.GetOnlineClientId();
+        var clientId = server.GetOnlineClientId();
         if (clientId == null)
             return null;
 
-        ServerOnlinePacket request = new ServerOnlinePacket();
+        var request = new ServerOnlinePacket();
         return await _vortexServer.RequestAsync<ServerOnlinePacket, ServerOnlinePacketResponse>(clientId.Value, request, timeoutMs);
     }
 
     public async Task<ExecuteCommandPacketResponse?> ExecuteCommandAsync(string serverName, string command, int timeoutMs = 10000)
     {
-        if (!TryGetServer(serverName, out TerrariaServer? server) || server == null)
+        if (!TryGetServer(serverName, out var server) || server == null)
             return null;
 
-        Guid? clientId = server.GetOnlineClientId();
+        var clientId = server.GetOnlineClientId();
         if (clientId == null)
             return null;
 
-        ExecuteCommandPacket request = new ExecuteCommandPacket { Text = command };
+        var request = new ExecuteCommandPacket { Text = command };
         return await _vortexServer.RequestAsync<ExecuteCommandPacket, ExecuteCommandPacketResponse>(clientId.Value, request, timeoutMs);
     }
 
     public async Task<GameProgressPacketResponse?> GetGameProgressAsync(string serverName, int timeoutMs = 5000)
     {
-        if (!TryGetServer(serverName, out TerrariaServer? server) || server == null)
+        if (!TryGetServer(serverName, out var server) || server == null)
             return null;
 
-        Guid? clientId = server.GetOnlineClientId();
+        var clientId = server.GetOnlineClientId();
         if (clientId == null)
             return null;
 
-        GameProgressPacket request = new GameProgressPacket();
+        var request = new GameProgressPacket();
         return await _vortexServer.RequestAsync<GameProgressPacket, GameProgressPacketResponse>(clientId.Value, request, timeoutMs);
     }
 
     public async Task<ServerRestartPacketResponse?> RestartServerAsync(string serverName, string startArgs = "", int timeoutMs = 5000)
     {
-        if (!TryGetServer(serverName, out TerrariaServer? server) || server == null)
+        if (!TryGetServer(serverName, out var server) || server == null)
             return null;
 
-        Guid? clientId = server.GetOnlineClientId();
+        var clientId = server.GetOnlineClientId();
         if (clientId == null)
             return null;
 
-        ServerRestartPacket request = new ServerRestartPacket { StartArgs = startArgs };
+        var request = new ServerRestartPacket { StartArgs = startArgs };
         return await _vortexServer.RequestAsync<ServerRestartPacket, ServerRestartPacketResponse>(clientId.Value, request, timeoutMs);
     }
 
     public async Task<ServerResetPacketResponse?> ResetServerAsync(string serverName, List<string> resetCommands, string startArgs = "", int timeoutMs = 5000)
     {
-        if (!TryGetServer(serverName, out TerrariaServer? server) || server == null)
+        if (!TryGetServer(serverName, out var server) || server == null)
             return null;
 
-        Guid? clientId = server.GetOnlineClientId();
+        var clientId = server.GetOnlineClientId();
         if (clientId == null)
             return null;
 
-        ServerResetPacket request = new ServerResetPacket
+        var request = new ServerResetPacket
         {
             ResetCommand = resetCommands,
             StartArgs = startArgs
@@ -196,14 +194,14 @@ public class TerrariaServerService
 
     public async Task<AccountRegistrationPacketResponse?> RegisterAccountAsync(string serverName, string name, string password, string group, int timeoutMs = 10000)
     {
-        if (!TryGetServer(serverName, out TerrariaServer? server) || server == null)
+        if (!TryGetServer(serverName, out var server) || server == null)
             return null;
 
-        Guid? clientId = server.GetOnlineClientId();
+        var clientId = server.GetOnlineClientId();
         if (clientId == null)
             return null;
 
-        AccountRegistrationPacket request = new AccountRegistrationPacket
+        var request = new AccountRegistrationPacket
         {
             Name = name,
             Password = password,
@@ -214,14 +212,14 @@ public class TerrariaServerService
 
     public async Task<AccountQueryPacketResponse?> QueryAccountAsync(string serverName, string targetName, int timeoutMs = 5000)
     {
-        if (!TryGetServer(serverName, out TerrariaServer? server) || server == null)
+        if (!TryGetServer(serverName, out var server) || server == null)
             return null;
 
-        Guid? clientId = server.GetOnlineClientId();
+        var clientId = server.GetOnlineClientId();
         if (clientId == null)
             return null;
 
-        AccountQueryPacket request = new AccountQueryPacket
+        var request = new AccountQueryPacket
         {
             Target = targetName
         };
@@ -233,7 +231,7 @@ public class TerrariaServerService
         _logger.LogInformation("[TerrariaServerManager] 尝试注册服务器连接: {ServerName}, 可用服务器: {Servers}",
             serverName, string.Join(", ", _servers.Keys));
 
-        if (TryGetServer(serverName, out TerrariaServer? server) && server != null)
+        if (TryGetServer(serverName, out var server) && server != null)
         {
             server.SetClientConnection(clientId);
             _logger.LogInformation("[TerrariaServerManager] 服务器 {ServerName} 已连接到客户端 {ClientId}", serverName, clientId);
@@ -246,7 +244,7 @@ public class TerrariaServerService
 
     public void UnregisterClientConnection(Guid clientId)
     {
-        foreach (TerrariaServer server in _servers.Values)
+        foreach (var server in _servers.Values)
         {
             if (server.GetOnlineClientId() == clientId)
             {
@@ -257,20 +255,13 @@ public class TerrariaServerService
     }
 }
 
-public class TerrariaServer
+public class TerrariaServer(TerrariaServerEnity config, VortexSocketService vortexServer, ILogger logger)
 {
-    private readonly ILogger _logger;
+    private readonly ILogger _logger = logger;
     private Guid? _connectedClientId;
 
-    public TerrariaServerEnity Config { get; }
-    public VortexSocketService VortexServer { get; }
-
-    public TerrariaServer(TerrariaServerEnity config, VortexSocketService vortexServer, ILogger logger)
-    {
-        Config = config;
-        VortexServer = vortexServer;
-        _logger = logger;
-    }
+    public TerrariaServerEnity Config { get; } = config;
+    public VortexSocketService VortexServer { get; } = vortexServer;
 
     public void SetClientConnection(Guid clientId)
     {
@@ -291,7 +282,7 @@ public class TerrariaServer
         if (_connectedClientId == null)
             return null;
 
-        ExecuteCommandPacket request = new ExecuteCommandPacket { Text = command };
+        var request = new ExecuteCommandPacket { Text = command };
         return await VortexServer.RequestAsync<ExecuteCommandPacket, ExecuteCommandPacketResponse>(_connectedClientId.Value, request);
     }
 
@@ -304,8 +295,8 @@ public class TerrariaServer
         }
 
         _logger.LogDebug("[TerrariaServer] 正在向客户端 {ClientId} 请求状态", _connectedClientId);
-        ServerStatusPacket request = new ServerStatusPacket();
-        ServerStatusPacketResponse? response = await VortexServer.RequestAsync<ServerStatusPacket, ServerStatusPacketResponse>(_connectedClientId.Value, request);
+        var request = new ServerStatusPacket();
+        var response = await VortexServer.RequestAsync<ServerStatusPacket, ServerStatusPacketResponse>(_connectedClientId.Value, request);
 
         if (response == null)
         {
@@ -328,7 +319,7 @@ public class TerrariaServer
         if (_connectedClientId == null)
             return null;
 
-        ServerOnlinePacket request = new ServerOnlinePacket();
+        var request = new ServerOnlinePacket();
         return await VortexServer.RequestAsync<ServerOnlinePacket, ServerOnlinePacketResponse>(_connectedClientId.Value, request);
     }
 
@@ -337,7 +328,7 @@ public class TerrariaServer
         if (_connectedClientId == null)
             return null;
 
-        GameProgressPacket request = new GameProgressPacket();
+        var request = new GameProgressPacket();
         return await VortexServer.RequestAsync<GameProgressPacket, GameProgressPacketResponse>(_connectedClientId.Value, request);
     }
 
@@ -346,7 +337,7 @@ public class TerrariaServer
         if (_connectedClientId == null)
             return null;
 
-        ServerRestartPacket request = new ServerRestartPacket { StartArgs = startArgs };
+        var request = new ServerRestartPacket { StartArgs = startArgs };
         return await VortexServer.RequestAsync<ServerRestartPacket, ServerRestartPacketResponse>(_connectedClientId.Value, request);
     }
 
@@ -355,7 +346,7 @@ public class TerrariaServer
         if (_connectedClientId == null)
             return null;
 
-        ServerResetPacket request = new ServerResetPacket
+        var request = new ServerResetPacket
         {
             ResetCommand = resetCommands,
             StartArgs = startArgs
@@ -368,7 +359,7 @@ public class TerrariaServer
         if (_connectedClientId == null)
             return null;
 
-        AccountRegistrationPacket request = new AccountRegistrationPacket
+        var request = new AccountRegistrationPacket
         {
             Name = name,
             Password = password,
@@ -382,7 +373,7 @@ public class TerrariaServer
         if (_connectedClientId == null)
             return null;
 
-        AccountQueryPacket request = new AccountQueryPacket
+        var request = new AccountQueryPacket
         {
             Target = targetName
         };
@@ -394,7 +385,7 @@ public class TerrariaServer
         if (_connectedClientId == null)
             return null;
 
-        PlayerInventoryPacket request = new PlayerInventoryPacket
+        var request = new PlayerInventoryPacket
         {
             Name = playerName
         };

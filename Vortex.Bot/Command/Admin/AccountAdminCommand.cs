@@ -78,7 +78,7 @@ public static class AccountAdminCommand
         [Main]
         public static async Task Execute(CommandArgs args)
         {
-            List<Account> accounts = Account.GetAll();
+            var accounts = Account.GetAll();
 
             if (accounts.Count == 0)
             {
@@ -91,7 +91,7 @@ public static class AccountAdminCommand
                 .SetTitle("账户列表")
                 .SetMemberUin(args.SenderUin);
 
-            foreach (Account account in accounts)
+            foreach (var account in accounts)
             {
                 builder.AddRow(account.UserId.ToString(), account.GroupName);
             }

@@ -222,13 +222,12 @@ public class ProfileCard : ImageGeneratorBase, IImageGenerator<ProfileItemBuilde
         var titleFont = CreateFont(Config.TitleFontSize, FontStyle.Bold);
         var normalFont = CreateFont(NormalFontSize);
 
-        int titleHeight = !string.IsNullOrEmpty(Config.Title) ?
+        var titleHeight = !string.IsNullOrEmpty(Config.Title) ?
             (int)TextMeasurer.MeasureSize(Config.Title, new TextOptions(titleFont)).Height + 30 : 0;
-        int avatarAreaHeight = Config.AvatarSize + 30;
-        int itemAreaHeight = (_currentBuilder.Items.Count * RowSpacing) + 20;
-        int signatureHeight = !string.IsNullOrEmpty(Config.Signature) ? 50 : 0;
-
-        int contentHeight = Config.ContentTopMargin + titleHeight + avatarAreaHeight + itemAreaHeight + signatureHeight + Config.ContentBottomMargin;
+        var avatarAreaHeight = Config.AvatarSize + 30;
+        var itemAreaHeight = (_currentBuilder.Items.Count * RowSpacing) + 20;
+        var signatureHeight = !string.IsNullOrEmpty(Config.Signature) ? 50 : 0;
+        var contentHeight = Config.ContentTopMargin + titleHeight + avatarAreaHeight + itemAreaHeight + signatureHeight + Config.ContentBottomMargin;
         _cardHeight = contentHeight;
 
         _backgroundHeight = _cardHeight + Config.CardTopMargin + Config.CardBottomMargin;
@@ -250,7 +249,7 @@ public class ProfileCard : ImageGeneratorBase, IImageGenerator<ProfileItemBuilde
 
         DrawCardBackgroundWithGlassEffect(ctx, _cardX, _cardY, CardWidth, _cardHeight, CardOpacity);
 
-        int currentY = _cardY + Config.ContentTopMargin;
+        var currentY = _cardY + Config.ContentTopMargin;
 
         if (!string.IsNullOrEmpty(Config.Title))
         {
@@ -268,7 +267,7 @@ public class ProfileCard : ImageGeneratorBase, IImageGenerator<ProfileItemBuilde
 
     private int DrawAvatarWithOffset(IImageProcessingContext ctx, int currentY, int canvasWidth)
     {
-        int avatarX = (canvasWidth / 2) - (Config.AvatarSize / 2);
+        var avatarX = (canvasWidth / 2) - (Config.AvatarSize / 2);
         DrawAvatar(ctx, avatarX, currentY, Config.AvatarSize);
         return currentY + Config.AvatarSize + 30;
     }
@@ -277,8 +276,8 @@ public class ProfileCard : ImageGeneratorBase, IImageGenerator<ProfileItemBuilde
     {
         if (_currentBuilder == null) return currentY;
 
-        int leftMargin = _cardX + 40;
-        int rightMargin = _cardX + CardWidth - 40;
+        var leftMargin = _cardX + 40;
+        var rightMargin = _cardX + CardWidth - 40;
 
         foreach (ProfileItem item in _currentBuilder.Items)
         {
@@ -290,17 +289,14 @@ public class ProfileCard : ImageGeneratorBase, IImageGenerator<ProfileItemBuilde
             ctx.DrawText(labelOptions, item.Label, item.LabelColor);
 
             FontRectangle valueTextSize = TextMeasurer.MeasureSize(item.Value, new TextOptions(normalFont));
-            int paddingX = 16;
-            int paddingY = 6;
-
-            float backgroundWidth = valueTextSize.Width + (paddingX * 2);
-            float backgroundHeight = valueTextSize.Height + (paddingY * 2);
-
-            float bgX = rightMargin - backgroundWidth;
-            float bgY = currentY - paddingY;
-
-            float valueTextX = bgX + paddingX;
-            float valueTextY = bgY + paddingY;
+            var paddingX = 16;
+            var paddingY = 6;
+            var backgroundWidth = valueTextSize.Width + (paddingX * 2);
+            var backgroundHeight = valueTextSize.Height + (paddingY * 2);
+            var bgX = rightMargin - backgroundWidth;
+            var bgY = currentY - paddingY;
+            var valueTextX = bgX + paddingX;
+            var valueTextY = bgY + paddingY;
 
             DrawValueBackgroundWithGlassEffect(ctx, (int)bgX, (int)bgY, (int)backgroundWidth, (int)backgroundHeight, item.UseEllipseBackground);
 
@@ -322,12 +318,12 @@ public class ProfileCard : ImageGeneratorBase, IImageGenerator<ProfileItemBuilde
         if (_backgroundImage != null)
         {
             var cropRect = new Rectangle(x, y, width, height);
-            using Image<Rgba32> bgBlur = _backgroundImage.Clone(img => img.Crop(cropRect).GaussianBlur(6));
+            using var bgBlur = _backgroundImage.Clone(img => img.Crop(cropRect).GaussianBlur(6));
             ctx.DrawImage(bgBlur, new Point(x, y), 1f);
         }
 
         var glassOverlay = new Color(new Rgba32(255, 255, 255, 50));
-        float cornerRadius = useEllipse ? height / 2f : 6f;
+        var cornerRadius = useEllipse ? height / 2f : 6f;
 
         if (useEllipse)
         {

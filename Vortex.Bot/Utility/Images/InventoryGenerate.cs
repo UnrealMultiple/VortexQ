@@ -117,28 +117,28 @@ public class InventoryGenerate
 
     private (int Width, int Height) CalculateCanvasSize(InventoryBuilder builder)
     {
-        int mainWidth = 10 * SlotSize + 9 * SlotSpacing;
-        int mainHeight = 5 * SlotSize + 4 * SlotSpacing;
+        var mainWidth = 10 * SlotSize + 9 * SlotSpacing;
+        var mainHeight = 5 * SlotSize + 4 * SlotSpacing;
 
-        int coinWidth = 2 * SlotSize + 1 * SlotSpacing;
-        int coinHeight = 4 * SlotSize + 3 * SlotSpacing;
+        var coinWidth = 2 * SlotSize + 1 * SlotSpacing;
+        var coinHeight = 4 * SlotSize + 3 * SlotSpacing;
 
-        int storageWidth = 10 * SlotSize + 9 * SlotSpacing;
-        int storageHeight = 4 * SlotSize + 3 * SlotSpacing;
+        var storageWidth = 10 * SlotSize + 9 * SlotSpacing;
+        var storageHeight = 4 * SlotSize + 3 * SlotSpacing;
 
-        int row1Height = Math.Max(mainHeight, coinHeight);
-        int row2Height = storageHeight;
-        int row3Height = storageHeight;
+        var row1Height = Math.Max(mainHeight, coinHeight);
+        var row2Height = storageHeight;
+        var row3Height = storageHeight;
 
-        int loadoutHeight = 10 * SlotSize + 9 * SlotSpacing;
-        int totalHeight = MarginY + TitleHeight + row1Height + RegionGapY + row2Height + RegionGapY + row3Height + RegionGapY + loadoutHeight + BottomMargin;
+        var loadoutHeight = 10 * SlotSize + 9 * SlotSpacing;
+        var totalHeight = MarginY + TitleHeight + row1Height + RegionGapY + row2Height + RegionGapY + row3Height + RegionGapY + loadoutHeight + BottomMargin;
         totalHeight += 4 * 25;
-        int row1Width = mainWidth + RegionGapX + coinWidth;
-        int row2Width = storageWidth + RegionGapX + storageWidth;
-        int row3Width = storageWidth + RegionGapX + storageWidth;
-        int row4Width = 3 * (3 * SlotSize + 2 * SlotSpacing) + 2 * 220;
-        int maxWidth = Math.Max(Math.Max(row1Width, row2Width), Math.Max(row3Width, row4Width));
-        int totalWidth = maxWidth + MarginX * 2;
+        var row1Width = mainWidth + RegionGapX + coinWidth;
+        var row2Width = storageWidth + RegionGapX + storageWidth;
+        var row3Width = storageWidth + RegionGapX + storageWidth;
+        var row4Width = 3 * (3 * SlotSize + 2 * SlotSpacing) + 2 * 220;
+        var maxWidth = Math.Max(Math.Max(row1Width, row2Width), Math.Max(row3Width, row4Width));
+        var totalWidth = maxWidth + MarginX * 2;
 
         return (totalWidth, totalHeight);
     }
@@ -163,55 +163,55 @@ public class InventoryGenerate
 
     private void DrawTitleCard(IImageProcessingContext ctx, InventoryBuilder builder, int canvasWidth, Font titleFont)
     {
-        string serverValue = builder.ServerName;
-        string playerValue = builder.PlayerName;
+        var serverValue = builder.ServerName;
+        var playerValue = builder.PlayerName;
 
-        FontFamily fontFamily = CardRenderer.GetFontFamily();
-        Font largeTitleFont = fontFamily.CreateFont(36, FontStyle.Bold);
-        Font smallFont = fontFamily.CreateFont(14);
-        Font infoFont = fontFamily.CreateFont(16);
+        var fontFamily = CardRenderer.GetFontFamily();
+        var largeTitleFont = fontFamily.CreateFont(36, FontStyle.Bold);
+        var smallFont = fontFamily.CreateFont(14);
+        var infoFont = fontFamily.CreateFont(16);
 
         var playerNameSize = TextMeasurer.MeasureSize(playerValue, new TextOptions(largeTitleFont));
         var serverSize = TextMeasurer.MeasureSize(serverValue, new TextOptions(smallFont));
-        int cardWidth = Math.Max(Math.Max((int)playerNameSize.Width + 60, (int)serverSize.Width + 60), 320);
-        int cardHeight = 95;
-        int cardX = (canvasWidth - cardWidth) / 2;
-        int cardY = MarginY - 20;
+        var cardWidth = Math.Max(Math.Max((int)playerNameSize.Width + 60, (int)serverSize.Width + 60), 320);
+        var cardHeight = 95;
+        var cardX = (canvasWidth - cardWidth) / 2;
+        var cardY = MarginY - 20;
 
         ctx.DrawRoundedRectangle(cardX + 2, cardY + 2, cardWidth, cardHeight, CardCornerRadius, CardShadowColor);
         ctx.DrawRoundedRectangle(cardX, cardY, cardWidth, cardHeight, CardCornerRadius, CardColor);
         ctx.DrawRoundedRectanglePath(cardX, cardY, cardWidth, cardHeight, CardCornerRadius, 1, CardBorderColor);
 
-        int headerHeight = 28;
-        Color headerColor = Color.FromRgb(70, 130, 200);
+        var headerHeight = 28;
+        var headerColor = Color.FromRgb(70, 130, 200);
         ctx.DrawRoundedRectangle(cardX, cardY, cardWidth, headerHeight, CardCornerRadius, headerColor);
         ctx.Fill(headerColor, new RectangleF(cardX, cardY + headerHeight / 2, cardWidth, headerHeight / 2));
 
-        string headerTitle = "玩家背包";
+        var headerTitle = "玩家背包";
         var headerTitleSize = TextMeasurer.MeasureSize(headerTitle, new TextOptions(infoFont));
-        float headerTitleX = cardX + (cardWidth - headerTitleSize.Width) / 2;
-        float headerTitleY = cardY + (headerHeight - headerTitleSize.Height) / 2 + 2;
+        var headerTitleX = cardX + (cardWidth - headerTitleSize.Width) / 2;
+        var headerTitleY = cardY + (headerHeight - headerTitleSize.Height) / 2 + 2;
         ctx.DrawText(headerTitle, infoFont, Color.White, new PointF(headerTitleX, headerTitleY));
 
-        float playerNameX = cardX + (cardWidth - playerNameSize.Width) / 2;
-        float playerNameY = cardY + headerHeight + 10;
+        var playerNameX = cardX + (cardWidth - playerNameSize.Width) / 2;
+        var playerNameY = cardY + headerHeight + 10;
         ctx.DrawText(playerValue, largeTitleFont, Color.FromRgb(50, 55, 70), new PointF(playerNameX, playerNameY));
 
-        float serverX = cardX + (cardWidth - serverSize.Width) / 2;
-        float serverY = playerNameY + playerNameSize.Height + 6;
+        var serverX = cardX + (cardWidth - serverSize.Width) / 2;
+        var serverY = playerNameY + playerNameSize.Height + 6;
         ctx.DrawText(serverValue, smallFont, Color.FromRgb(130, 140, 160), new PointF(serverX, serverY));
     }
 
     private void DrawContent(IImageProcessingContext ctx, InventoryBuilder builder, int canvasWidth)
     {
-        FontFamily fontFamily = CardRenderer.GetFontFamily();
-        Font titleFont = fontFamily.CreateFont(TitleFontSize, FontStyle.Bold);
-        Font regionTitleFont = fontFamily.CreateFont(RegionTitleFontSize, FontStyle.Bold);
-        Font countFont = fontFamily.CreateFont(ItemCountFontSize);
+        var fontFamily = CardRenderer.GetFontFamily();
+        var titleFont = fontFamily.CreateFont(TitleFontSize, FontStyle.Bold);
+        var regionTitleFont = fontFamily.CreateFont(RegionTitleFontSize, FontStyle.Bold);
+        var countFont = fontFamily.CreateFont(ItemCountFontSize);
 
         DrawTitleCard(ctx, builder, canvasWidth, titleFont);
 
-        int currentY = MarginY + 130;
+        var currentY = MarginY + 130;
 
         currentY = DrawRow1(ctx, builder, regionTitleFont, countFont, canvasWidth, currentY);
 
@@ -229,39 +229,39 @@ public class InventoryGenerate
 
     private void DrawSignature(IImageProcessingContext ctx, int canvasWidth)
     {
-        string signature = "Generated by Vortex.Bot";
-        FontFamily fontFamily = CardRenderer.GetFontFamily();
-        Font signatureFont = fontFamily.CreateFont(12);
+        var signature = "Generated by Vortex.Bot";
+        var fontFamily = CardRenderer.GetFontFamily();
+        var signatureFont = fontFamily.CreateFont(12);
 
         var signatureSize = TextMeasurer.MeasureSize(signature, new TextOptions(signatureFont));
-        float signatureX = (canvasWidth - signatureSize.Width) / 2;
-        float signatureY = _canvasHeight - 20;
+        var signatureX = (canvasWidth - signatureSize.Width) / 2;
+        var signatureY = _canvasHeight - 20;
 
         ctx.DrawText(signature, signatureFont, Color.FromRgb(160, 165, 180), new PointF(signatureX, signatureY));
     }
 
     private int DrawRow1(IImageProcessingContext ctx, InventoryBuilder builder, Font titleFont, Font countFont, int canvasWidth, int y)
     {
-        int mainWidth = 10 * SlotSize + 9 * SlotSpacing;
-        int mainHeight = 5 * SlotSize + 4 * SlotSpacing;
+        var mainWidth = 10 * SlotSize + 9 * SlotSpacing;
+        var mainHeight = 5 * SlotSize + 4 * SlotSpacing;
 
-        int coinWidth = 2 * SlotSize + 1 * SlotSpacing;
-        int coinHeight = 4 * SlotSize + 3 * SlotSpacing;
+        var coinWidth = 2 * SlotSize + 1 * SlotSpacing;
+        var coinHeight = 4 * SlotSize + 3 * SlotSpacing;
 
-        int rowHeight = Math.Max(mainHeight, coinHeight);
+        var rowHeight = Math.Max(mainHeight, coinHeight);
 
-        int totalWidth = mainWidth + RegionGapX + coinWidth;
-        int startX = (canvasWidth - totalWidth) / 2;
+        var totalWidth = mainWidth + RegionGapX + coinWidth;
+        var startX = (canvasWidth - totalWidth) / 2;
 
         DrawInventoryCard(ctx, startX, y, mainWidth, mainHeight, "主背包", titleFont, MainInventoryHeaderColor);
-        for (int i = 0; i < 50 && i < builder.Inventory.Count; i++)
+        for (var i = 0; i < 50 && i < builder.Inventory.Count; i++)
         {
             int row = i / 10, col = i % 10;
             DrawSlot(ctx, builder.Inventory[i], startX + col * (SlotSize + SlotSpacing), y + row * (SlotSize + SlotSpacing), countFont);
         }
 
-        int coinX = startX + mainWidth + RegionGapX;
-        int coinAmmoHeight = coinHeight;
+        var coinX = startX + mainWidth + RegionGapX;
+        var coinAmmoHeight = coinHeight;
 
         if (builder.TrashItem != null && !builder.TrashItem.IsEmpty)
         {
@@ -270,7 +270,7 @@ public class InventoryGenerate
 
         DrawInventoryCard(ctx, coinX, y, coinWidth, coinAmmoHeight, "钱币 / 弹药", titleFont, CoinAmmoHeaderColor);
 
-        for (int i = 0; i < 8 && i + 50 < builder.Inventory.Count; i++)
+        for (var i = 0; i < 8 && i + 50 < builder.Inventory.Count; i++)
         {
             int row = i / 2, col = i % 2;
             DrawSlot(ctx, builder.Inventory[i + 50], coinX + col * (SlotSize + SlotSpacing), y + row * (SlotSize + SlotSpacing), countFont);
@@ -279,26 +279,26 @@ public class InventoryGenerate
 
         if (builder.TrashItem != null && !builder.TrashItem.IsEmpty)
         {
-            int trashY = y + coinHeight + 15;
+            var trashY = y + coinHeight + 15;
             var trashTitleSize = TextMeasurer.MeasureSize("垃圾桶", new TextOptions(titleFont));
-            float trashTitleX = coinX + (coinWidth - trashTitleSize.Width) / 2;
+            var trashTitleX = coinX + (coinWidth - trashTitleSize.Width) / 2;
             ctx.DrawText("垃圾桶", titleFont, RegionTitleColor, new PointF(trashTitleX, trashY - 18));
             DrawSlot(ctx, builder.TrashItem, coinX + (coinWidth - SlotSize) / 2, trashY, countFont);
         }
 
-        for (int i = 0; i < 50 && i < builder.Inventory.Count; i++)
+        for (var i = 0; i < 50 && i < builder.Inventory.Count; i++)
         {
             int row = i / 10, col = i % 10;
             DrawSlotOverlay(ctx, builder.Inventory[i], startX + col * (SlotSize + SlotSpacing), y + row * (SlotSize + SlotSpacing), countFont);
         }
-        for (int i = 0; i < 8 && i + 50 < builder.Inventory.Count; i++)
+        for (var i = 0; i < 8 && i + 50 < builder.Inventory.Count; i++)
         {
             int row = i / 2, col = i % 2;
             DrawSlotOverlay(ctx, builder.Inventory[i + 50], coinX + col * (SlotSize + SlotSpacing), y + row * (SlotSize + SlotSpacing), countFont);
         }
         if (builder.TrashItem != null && !builder.TrashItem.IsEmpty)
         {
-            int trashY = y + coinHeight + 15;
+            var trashY = y + coinHeight + 15;
             DrawSlotOverlay(ctx, builder.TrashItem, coinX + (coinWidth - SlotSize) / 2, trashY, countFont);
         }
 
@@ -307,27 +307,27 @@ public class InventoryGenerate
 
     private int DrawRow2(IImageProcessingContext ctx, InventoryBuilder builder, Font titleFont, Font countFont, int canvasWidth, int y)
     {
-        int storageWidth = 10 * SlotSize + 9 * SlotSpacing;
-        int storageHeight = 4 * SlotSize + 3 * SlotSpacing;
+        var storageWidth = 10 * SlotSize + 9 * SlotSpacing;
+        var storageHeight = 4 * SlotSize + 3 * SlotSpacing;
 
-        int totalWidth = storageWidth + RegionGapX + storageWidth;
-        int startX = (canvasWidth - totalWidth) / 2;
+        var totalWidth = storageWidth + RegionGapX + storageWidth;
+        var startX = (canvasWidth - totalWidth) / 2;
 
         if (builder.Piggy.Count > 0)
         {
             DrawInventoryCard(ctx, startX, y, storageWidth, storageHeight, "猪猪储钱罐", titleFont, PiggyHeaderColor);
-            for (int i = 0; i < builder.Piggy.Count && i < 40; i++)
+            for (var i = 0; i < builder.Piggy.Count && i < 40; i++)
             {
                 int row = i / 10, col = i % 10;
                 DrawSlot(ctx, builder.Piggy[i], startX + col * (SlotSize + SlotSpacing), y + row * (SlotSize + SlotSpacing), countFont);
             }
         }
 
-        int safeX = startX + storageWidth + RegionGapX;
+        var safeX = startX + storageWidth + RegionGapX;
         if (builder.Safe.Count > 0)
         {
             DrawInventoryCard(ctx, safeX, y, storageWidth, storageHeight, "保险箱", titleFont, SafeHeaderColor);
-            for (int i = 0; i < builder.Safe.Count && i < 40; i++)
+            for (var i = 0; i < builder.Safe.Count && i < 40; i++)
             {
                 int row = i / 10, col = i % 10;
                 DrawSlot(ctx, builder.Safe[i], safeX + col * (SlotSize + SlotSpacing), y + row * (SlotSize + SlotSpacing), countFont);
@@ -336,7 +336,7 @@ public class InventoryGenerate
 
         if (builder.Piggy.Count > 0)
         {
-            for (int i = 0; i < builder.Piggy.Count && i < 40; i++)
+            for (var i = 0; i < builder.Piggy.Count && i < 40; i++)
             {
                 int row = i / 10, col = i % 10;
                 DrawSlotOverlay(ctx, builder.Piggy[i], startX + col * (SlotSize + SlotSpacing), y + row * (SlotSize + SlotSpacing), countFont);
@@ -344,7 +344,7 @@ public class InventoryGenerate
         }
         if (builder.Safe.Count > 0)
         {
-            for (int i = 0; i < builder.Safe.Count && i < 40; i++)
+            for (var i = 0; i < builder.Safe.Count && i < 40; i++)
             {
                 int row = i / 10, col = i % 10;
                 DrawSlotOverlay(ctx, builder.Safe[i], safeX + col * (SlotSize + SlotSpacing), y + row * (SlotSize + SlotSpacing), countFont);
@@ -356,27 +356,26 @@ public class InventoryGenerate
 
     private int DrawRow3(IImageProcessingContext ctx, InventoryBuilder builder, Font titleFont, Font countFont, int canvasWidth, int y)
     {
-        int storageWidth = 10 * SlotSize + 9 * SlotSpacing;
-        int storageHeight = 4 * SlotSize + 3 * SlotSpacing;
+        var storageWidth = 10 * SlotSize + 9 * SlotSpacing;
+        var storageHeight = 4 * SlotSize + 3 * SlotSpacing;
 
-        int totalWidth = storageWidth + RegionGapX + storageWidth;
-        int startX = (canvasWidth - totalWidth) / 2;
-
+        var totalWidth = storageWidth + RegionGapX + storageWidth;
+        var startX = (canvasWidth - totalWidth) / 2;
         if (builder.VoidVault.Count > 0)
         {
             DrawInventoryCard(ctx, startX, y, storageWidth, storageHeight, "虚空宝库", titleFont, VoidVaultHeaderColor);
-            for (int i = 0; i < builder.VoidVault.Count && i < 40; i++)
+            for (var i = 0; i < builder.VoidVault.Count && i < 40; i++)
             {
                 int row = i / 10, col = i % 10;
                 DrawSlot(ctx, builder.VoidVault[i], startX + col * (SlotSize + SlotSpacing), y + row * (SlotSize + SlotSpacing), countFont);
             }
         }
 
-        int forgeX = startX + storageWidth + RegionGapX;
+        var forgeX = startX + storageWidth + RegionGapX;
         if (builder.Forge.Count > 0)
         {
             DrawInventoryCard(ctx, forgeX, y, storageWidth, storageHeight, "护卫熔炉", titleFont, ForgeHeaderColor);
-            for (int i = 0; i < builder.Forge.Count && i < 40; i++)
+            for (var i = 0; i < builder.Forge.Count && i < 40; i++)
             {
                 int row = i / 10, col = i % 10;
                 DrawSlot(ctx, builder.Forge[i], forgeX + col * (SlotSize + SlotSpacing), y + row * (SlotSize + SlotSpacing), countFont);
@@ -385,7 +384,7 @@ public class InventoryGenerate
 
         if (builder.VoidVault.Count > 0)
         {
-            for (int i = 0; i < builder.VoidVault.Count && i < 40; i++)
+            for (var i = 0; i < builder.VoidVault.Count && i < 40; i++)
             {
                 int row = i / 10, col = i % 10;
                 DrawSlotOverlay(ctx, builder.VoidVault[i], startX + col * (SlotSize + SlotSpacing), y + row * (SlotSize + SlotSpacing), countFont);
@@ -393,7 +392,7 @@ public class InventoryGenerate
         }
         if (builder.Forge.Count > 0)
         {
-            for (int i = 0; i < builder.Forge.Count && i < 40; i++)
+            for (var i = 0; i < builder.Forge.Count && i < 40; i++)
             {
                 int row = i / 10, col = i % 10;
                 DrawSlotOverlay(ctx, builder.Forge[i], forgeX + col * (SlotSize + SlotSpacing), y + row * (SlotSize + SlotSpacing), countFont);
@@ -407,21 +406,20 @@ public class InventoryGenerate
     {
         if (builder.Loadouts.Count == 0) return;
 
-        int loadoutWidth = 3 * SlotSize + 2 * SlotSpacing;
-        int loadoutHeight = 10 * SlotSize + 9 * SlotSpacing;
+        var loadoutWidth = 3 * SlotSize + 2 * SlotSpacing;
+        var loadoutHeight = 10 * SlotSize + 9 * SlotSpacing;
 
-        int totalWidth = 3 * loadoutWidth + 2 * 220;
-        int startX = (canvasWidth - totalWidth) / 2;
-
-        for (int i = 0; i < builder.Loadouts.Count && i < 3; i++)
+        var totalWidth = 3 * loadoutWidth + 2 * 220;
+        var startX = (canvasWidth - totalWidth) / 2;
+        for (var i = 0; i < builder.Loadouts.Count && i < 3; i++)
         {
             var loadout = builder.Loadouts[i];
-            int loadoutX = startX + i * (loadoutWidth + 220);
+            var loadoutX = startX + i * (loadoutWidth + 220);
 
             DrawInventoryCard(ctx, loadoutX, y, loadoutWidth, loadoutHeight, $"套装 {i + 1}", titleFont, LoadoutHeaderColor);
 
             var equipItems = builder.MiscEquip.Concat(builder.MiscDye).ToList();
-            for (int j = 0; j < equipItems.Count && j < 10; j++)
+            for (var j = 0; j < equipItems.Count && j < 10; j++)
             {
                 DrawSlot(ctx, equipItems[j], loadoutX, y + j * (SlotSize + SlotSpacing), countFont);
             }
@@ -430,7 +428,7 @@ public class InventoryGenerate
             if (loadout.Armor?.Length > 10)
             {
                 armorItems2 = loadout.Armor.Skip(10).Take(10).Select(a => new ItemSlot(a)).ToList();
-                for (int j = 0; j < armorItems2.Count && j < 10; j++)
+                for (var j = 0; j < armorItems2.Count && j < 10; j++)
                 {
                     DrawSlot(ctx, armorItems2[j], loadoutX + SlotSize + SlotSpacing, y + j * (SlotSize + SlotSpacing), countFont);
                 }
@@ -440,21 +438,21 @@ public class InventoryGenerate
             if (loadout.Armor?.Length > 0)
             {
                 armorItems1 = loadout.Armor.Take(10).Select(a => new ItemSlot(a)).ToList();
-                for (int j = 0; j < armorItems1.Count && j < 10; j++)
+                for (var j = 0; j < armorItems1.Count && j < 10; j++)
                 {
                     DrawSlot(ctx, armorItems1[j], loadoutX + 2 * (SlotSize + SlotSpacing), y + j * (SlotSize + SlotSpacing), countFont);
                 }
             }
 
-            for (int j = 0; j < equipItems.Count && j < 10; j++)
+            for (var j = 0; j < equipItems.Count && j < 10; j++)
             {
                 DrawSlotOverlay(ctx, equipItems[j], loadoutX, y + j * (SlotSize + SlotSpacing), countFont);
             }
-            for (int j = 0; j < armorItems2.Count && j < 10; j++)
+            for (var j = 0; j < armorItems2.Count && j < 10; j++)
             {
                 DrawSlotOverlay(ctx, armorItems2[j], loadoutX + SlotSize + SlotSpacing, y + j * (SlotSize + SlotSpacing), countFont);
             }
-            for (int j = 0; j < armorItems1.Count && j < 10; j++)
+            for (var j = 0; j < armorItems1.Count && j < 10; j++)
             {
                 DrawSlotOverlay(ctx, armorItems1[j], loadoutX + 2 * (SlotSize + SlotSpacing), y + j * (SlotSize + SlotSpacing), countFont);
             }
@@ -463,11 +461,11 @@ public class InventoryGenerate
 
     private void DrawInventoryCard(IImageProcessingContext ctx, int x, int y, int width, int height, string title, Font titleFont, Color? headerColor = null)
     {
-        int cardWidth = width + CardPadding * 2;
-        int cardHeight = height + CardPadding * 2 + 20;
-        int cardX = x - CardPadding;
-        int cardY = y - CardPadding - 20;
-        int headerHeight = 24;
+        var cardWidth = width + CardPadding * 2;
+        var cardHeight = height + CardPadding * 2 + 20;
+        var cardX = x - CardPadding;
+        var cardY = y - CardPadding - 20;
+        var headerHeight = 24;
 
         ctx.DrawRoundedRectangle(cardX + 2, cardY + 2, cardWidth, cardHeight, CardCornerRadius, CardShadowColor);
         ctx.DrawRoundedRectangle(cardX, cardY, cardWidth, cardHeight, CardCornerRadius, CardColor);
@@ -481,15 +479,15 @@ public class InventoryGenerate
         ctx.DrawRoundedRectanglePath(cardX, cardY, cardWidth, cardHeight, CardCornerRadius, 1, CardBorderColor);
 
         var titleSize = TextMeasurer.MeasureSize(title, new TextOptions(titleFont));
-        float titleX = cardX + (cardWidth - titleSize.Width) / 2;
-        float titleY = cardY + (headerHeight - titleSize.Height) / 2 + 2;
-        Color titleTextColor = headerColor.HasValue ? Color.White : RegionTitleColor;
+        var titleX = cardX + (cardWidth - titleSize.Width) / 2;
+        var titleY = cardY + (headerHeight - titleSize.Height) / 2 + 2;
+        var titleTextColor = headerColor.HasValue ? Color.White : RegionTitleColor;
         ctx.DrawText(title, titleFont, titleTextColor, new PointF(titleX, titleY));
     }
 
     private void DrawSlot(IImageProcessingContext ctx, ItemSlot item, int x, int y, Font countFont)
     {
-        Color slotColor = item.IsEmpty ? SlotEmptyColor : SlotFilledColor;
+        var slotColor = item.IsEmpty ? SlotEmptyColor : SlotFilledColor;
         ctx.DrawRoundedRectangle(x, y, SlotSize, SlotSize, 4, slotColor);
 
         if (item.IsEmpty)
@@ -508,10 +506,10 @@ public class InventoryGenerate
     {
         if (!item.IsEmpty && item.Stack >= 1)
         {
-            string countText = item.Stack.ToString();
+            var countText = item.Stack.ToString();
             var countSize = TextMeasurer.MeasureSize(countText, new TextOptions(countFont));
-            float countX = x + SlotSize - countSize.Width - 3;
-            float countY = y + SlotSize - countSize.Height - 2;
+            var countX = x + SlotSize - countSize.Width - 3;
+            var countY = y + SlotSize - countSize.Height - 2;
             ctx.Fill(ItemCountBackgroundColor, new RectangleF(countX - 2, countY - 1, countSize.Width + 4, countSize.Height + 2));
             ctx.DrawText(countText, countFont, ItemCountColor, new PointF(countX, countY));
         }
@@ -521,19 +519,19 @@ public class InventoryGenerate
     {
         if (netId <= 0) return;
 
-        string itemPath = Path.Combine(AppContext.BaseDirectory, "Resources", "Item", $"{netId}.png");
+        var itemPath = Path.Combine(AppContext.BaseDirectory, "Resources", "Item", $"{netId}.png");
         if (!File.Exists(itemPath)) return;
 
         try
         {
-            using Image<Rgba32> itemImage = Image.Load<Rgba32>(itemPath);
-            int maxIconSize = SlotSize - (ItemIconPadding * 2);
+            using var itemImage = Image.Load<Rgba32>(itemPath);
+            var maxIconSize = SlotSize - (ItemIconPadding * 2);
 
             float scale = Math.Min((float)maxIconSize / itemImage.Width, (float)maxIconSize / itemImage.Height);
-            int drawWidth = (int)(itemImage.Width * scale);
-            int drawHeight = (int)(itemImage.Height * scale);
-            int drawX = x + (SlotSize - drawWidth) / 2;
-            int drawY = y + (SlotSize - drawHeight) / 2;
+            var drawWidth = (int)(itemImage.Width * scale);
+            var drawHeight = (int)(itemImage.Height * scale);
+            var drawX = x + (SlotSize - drawWidth) / 2;
+            var drawY = y + (SlotSize - drawHeight) / 2;
 
             if (drawWidth != itemImage.Width || drawHeight != itemImage.Height)
                 itemImage.Mutate(i => i.Resize(drawWidth, drawHeight));

@@ -118,7 +118,7 @@ public static class GroupAdminCommand
         [Main]
         public static async Task Execute(CommandArgs args)
         {
-            List<Group> groups = Group.GetAll();
+            var groups = Group.GetAll();
 
             if (groups.Count == 0)
             {
@@ -131,7 +131,7 @@ public static class GroupAdminCommand
                 .SetTitle("权限组列表")
                 .SetMemberUin(args.SenderUin);
 
-            foreach (Group group in groups)
+            foreach (var group in groups)
             {
                 var perms = string.Join(", ", group.Permissions);
                 if (string.IsNullOrEmpty(perms))

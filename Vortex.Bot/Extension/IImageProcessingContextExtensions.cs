@@ -12,12 +12,11 @@ public static class IImageProcessingContextExtensions
     {
         if (cornerRadius <= 0)
         {
-            // 如果没有圆角，就直接绘制矩形
             context.Fill(color, new RectangleF(x, y, width, height));
             return;
         }
-        float radius = cornerRadius * 2;
-        PathBuilder pathBuilder = new PathBuilder();
+        var radius = cornerRadius * 2;
+        var pathBuilder = new PathBuilder();
         pathBuilder.StartFigure()
             .AddLine(x + cornerRadius, y, x + width - cornerRadius, y)
             .AddArc(new RectangleF(x + width - radius, y, radius, radius), 0, 270, 90)
@@ -36,12 +35,11 @@ public static class IImageProcessingContextExtensions
     {
         if (cornerRadius <= 0)
         {
-            // 如果没有圆角，就直接绘制矩形
             context.Draw(color, size, new RectangleF(x, y, width, height));
             return;
         }
-        float radius = cornerRadius * 2;
-        PathBuilder pathBuilder = new PathBuilder();
+        var radius = cornerRadius * 2;
+        var pathBuilder = new PathBuilder();
         pathBuilder.StartFigure()
             .AddLine(x + cornerRadius, y, x + width - cornerRadius, y)
             .AddArc(new RectangleF(x + width - radius, y, radius, radius), 0, 270, 90)

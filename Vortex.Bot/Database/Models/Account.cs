@@ -50,7 +50,7 @@ public class Account
             throw new InvalidOperationException($"组 '{groupName}' 不存在");
         }
 
-        Account account = new Account
+        var account = new Account
         {
             UserId = userId,
             GroupName = groupName
@@ -66,7 +66,7 @@ public class Account
 
     public static void SetGroup(long userId, string groupName)
     {
-        Account account = GetByUserId(userId) ?? throw new InvalidOperationException($"账户 {userId} 不存在");
+        var account = GetByUserId(userId) ?? throw new InvalidOperationException($"账户 {userId} 不存在");
 
         if (!Group.Exists(groupName))
         {

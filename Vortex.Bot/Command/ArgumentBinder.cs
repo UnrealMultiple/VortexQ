@@ -12,7 +12,7 @@ internal sealed class ArgumentBinder
 
     public ArgumentBinder(ParameterInfo[] parameters)
     {
-        ParameterInfo[] commandParameters = parameters.Skip(1).ToArray();
+        var commandParameters = parameters.Skip(1).ToArray();
         _parsers = CreateParsers(commandParameters);
         _types = CreateTypes(commandParameters);
         _parameterInfo = BuildParameterInfo(commandParameters);
@@ -22,13 +22,13 @@ internal sealed class ArgumentBinder
 
     public object?[]? ParseArguments(List<string> parameters, int startIndex)
     {
-        int count = _parsers.Length;
-        object?[] args = new object?[count + 1];
+        var count = _parsers.Length;
+        var args = new object?[count + 1];
         args[0] = null;
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
-            int paramIndex = startIndex + i;
+            var paramIndex = startIndex + i;
 
             if (paramIndex >= parameters.Count)
             {
@@ -50,24 +50,18 @@ internal sealed class ArgumentBinder
             return new ValidationResult(minArgs + startIndex, int.MaxValue);
         }
 
-        int expectedCount = _parsers.Length + startIndex;
+        var expectedCount = _parsers.Length + startIndex;
         return new ValidationResult(expectedCount, expectedCount);
     }
 
-    private static ArgumentParser[] CreateParsers(ParameterInfo[] parameters)
-    {
-        return [.. parameters.Select(p =>
+    private static ArgumentParser[] CreateParsers(ParameterInfo[] parameters) => [.. parameters.Select(p =>
         {
             return !CommandParser.IsSupportedType(p.ParameterType)
                 ? throw new NotSupportedException(
                     $"Parameter type {p.ParameterType.Name} is not supported")
                 : CommandParser.GetParser(p.ParameterType); })];
-    }
 
-    private static Type[] CreateTypes(ParameterInfo[] parameters)
-    {
-        return [.. parameters.Select(p => p.ParameterType)];
-    }
+    private static Type[] CreateTypes(ParameterInfo[] parameters) => [.. parameters.Select(p => p.ParameterType)];
 
     private static string BuildParameterInfo(ParameterInfo[] parameters)
     {
@@ -77,8 +71,8 @@ internal sealed class ArgumentBinder
         var sb = new StringBuilder();
         foreach (ParameterInfo p in parameters)
         {
-            ParamAttribute? paramAttr = p.GetCustomAttribute<ParamAttribute>();
-            string paramDesc = paramAttr?.Description ?? p.Name ?? "param";
+            var paramAttr = p.GetCustomAttribute<ParamAttribute>();
+            var paramDesc = paramAttr?.Description ?? p.Name ?? "param";
             sb.Append($" <{paramDesc}: {CommandParser.GetFriendlyName(p.ParameterType)}>");
         }
         return sb.ToString();

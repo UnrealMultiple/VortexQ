@@ -83,7 +83,7 @@ public static class CommandEvents
 
     internal static async Task<PermissionCheckResult> TriggerPermissionChecking(CommandArgs args, string[] requiredPermissions)
     {
-        PermissionCheckEventArgs eventArgs = new PermissionCheckEventArgs(args, requiredPermissions);
+        var eventArgs = new PermissionCheckEventArgs(args, requiredPermissions);
 
         if (OnPermissionChecking != null)
         {

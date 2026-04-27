@@ -1,8 +1,6 @@
 ﻿using SixLabors.Fonts;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using Vortex.Bot.Extension;
 
 namespace Vortex.Bot.Utility;
@@ -25,48 +23,11 @@ internal class ImageUtility
 
     public static Image<Rgba32> GetAvatar(long uin, int size)
     {
-        byte[] buffer = HttpUtility.GetByteAsync($"http://q.qlogo.cn/headimg_dl?dst_uin={uin}&spec=640&img_type=png").Result;
-        using Image<Rgba32> image = Image.Load<Rgba32>(buffer);
+        var buffer = HttpUtility.GetByteAsync($"http://q.qlogo.cn/headimg_dl?dst_uin={uin}&spec=640&img_type=png").Result;
+        using var image = Image.Load<Rgba32>(buffer);
         var avatar = image.CutCircles(size);
         return avatar;
     }
 
     public static string GetRandOneBotBackground() => Directory.GetFiles("Resources/OneBotImage").Rand();
-
-    public void DrawImage(Image target, Image source, int X, int Y)
-    {
-        target.Mutate(x => x.DrawImage(source, new Point(X, Y), new GraphicsOptions()));
-    }
-
-    public void DrawText(Image image, string text, int x, int y, int fontSize, Color color)
-    {
-        Font font = new Font(FontFamily, fontSize);
-        RichTextOptions textOptions = new(font)
-        {
-            Origin = new(x, y),
-            TextAlignment = TextAlignment.Center
-        };
-        image.Mutate(ctx => ctx.DrawText(textOptions, text, color));
-    }
-
-    /// <summary>
-    /// 等比例缩放
-    /// </summary>
-    /// <param name="image"></param>
-    /// <param name="size"></param>
-    public void ResetSize(Image image, int size)
-    {
-        int height = image.Height;
-        int width = image.Width;
-        if (height > width)
-        {
-            width = size * (width / height);
-            image.Mutate(x => x.Resize(width, size));
-        }
-        else
-        {
-            height = size * (height / width);
-            image.Mutate(x => x.Resize(size, height));
-        }
-    }
 }

@@ -16,20 +16,13 @@ public static class CardRenderer
 
     public static void DrawRoundedCardWithBlur(IImageProcessingContext ctx, Image<Rgba32> backgroundImage, int x, int y, int width, int height, float cornerRadius, Color color, float blurAmount = 8f)
     {
-        // 创建卡片区域的模糊副本
-        Rectangle cropRect = new Rectangle(x, y, width, height);
-        using Image<Rgba32> cardBlur = backgroundImage.Clone(img => img.Crop(cropRect).GaussianBlur(blurAmount));
-
-        // 绘制模糊后的背景到卡片区域
+        var cropRect = new Rectangle(x, y, width, height);
+        using var cardBlur = backgroundImage.Clone(img => img.Crop(cropRect).GaussianBlur(blurAmount));
         ctx.DrawImage(cardBlur, new Point(x, y), 1f);
-
-        // 添加半透明白色覆盖层增强玻璃效果 - 使用更高的透明度让卡片更白
-        Rgba32 originalColor = color.ToPixel<Rgba32>();
-        byte alpha = originalColor.A > 0 ? originalColor.A : (byte)200;
+        var originalColor = color.ToPixel<Rgba32>();
+        var alpha = originalColor.A > 0 ? originalColor.A : (byte)200;
         var glassOverlay = new Color(new Rgba32(255, 255, 255, (byte)(alpha * 0.7 + 50)));
         ctx.DrawRoundedRectangle(x, y, width, height, cornerRadius, glassOverlay);
-
-        // 添加高光边框
         ctx.DrawRoundedRectanglePath(x, y, width, height, cornerRadius, 1, new Color(new Rgba32(255, 255, 255, 120)));
     }
 
@@ -37,7 +30,7 @@ public static class CardRenderer
     {
         if (string.IsNullOrEmpty(title)) return;
 
-        FontRectangle titleSize = TextMeasurer.MeasureSize(title, new TextOptions(font));
+        var titleSize = TextMeasurer.MeasureSize(title, new TextOptions(font));
         var titlePosition = new PointF(x + ((maxWidth - titleSize.Width) / 2), y);
         ctx.DrawText(title, font, color, titlePosition);
     }
@@ -46,7 +39,7 @@ public static class CardRenderer
     {
         if (string.IsNullOrEmpty(title)) return y;
 
-        RichTextOptions titleOptions = new RichTextOptions(font)
+        var titleOptions = new RichTextOptions(font)
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             Origin = new PointF(canvasWidth / 2, y)
@@ -60,13 +53,13 @@ public static class CardRenderer
 
     public static void DrawAvatar(IImageProcessingContext ctx, long memberUin, int size, int x, int y)
     {
-        using Image<Rgba32> avatar = ImageUtility.GetAvatar(memberUin, size);
+        using var avatar = ImageUtility.GetAvatar(memberUin, size);
         ctx.DrawImage(avatar, new Point(x, y), 1f);
     }
 
     public static void DrawCenteredAvatar(IImageProcessingContext ctx, long memberUin, int size, int y, int canvasWidth)
     {
-        int x = (canvasWidth - size) / 2;
+        var x = (canvasWidth - size) / 2;
         DrawAvatar(ctx, memberUin, size, x, y);
     }
 
@@ -87,7 +80,7 @@ public static class CardRenderer
     {
         if (string.IsNullOrEmpty(signature)) return;
 
-        RichTextOptions signatureOptions = new RichTextOptions(font)
+        var signatureOptions = new RichTextOptions(font)
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             Origin = new PointF(canvasWidth / 2, y)
@@ -107,9 +100,9 @@ public static class CardRenderer
 
     public static Image<Rgba32> PrepareBackground(int width, int height, string backgroundPath)
     {
-        using Image<Rgba32> originalBackground = Image.Load<Rgba32>(backgroundPath);
+        using var originalBackground = Image.Load<Rgba32>(backgroundPath);
 
-        Image<Rgba32> background = new Image<Rgba32>(width, height);
+        var background = new Image<Rgba32>(width, height);
 
         originalBackground.Mutate(x => x.Resize(new ResizeOptions
         {
@@ -127,10 +120,10 @@ public static class CardRenderer
         if (background.Width == width && background.Height == height)
             return background.Clone();
 
-        Image<Rgba32> result = new Image<Rgba32>(width, height);
+        var result = new Image<Rgba32>(width, height);
 
-        int x = Math.Max(0, (background.Width - width) / 2);
-        int y = Math.Max(0, (background.Height - height) / 2);
+        var x = Math.Max(0, (background.Width - width) / 2);
+        var y = Math.Max(0, (background.Height - height) / 2);
 
         result.Mutate(ctx => ctx.DrawImage(background, new Point(-x, -y), 1f));
 

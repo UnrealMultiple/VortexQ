@@ -14,14 +14,14 @@ public static class InventoryCommand
     [Main]
     public static async Task Execute(GroupCommandArgs args, [Param("玩家名称")] string playerName)
     {
-        TerrariaServerService? serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
+        var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
         if (serverManager == null)
         {
             await args.ReplyWithAtAsync("服务器管理器未初始化");
             return;
         }
 
-        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out TerrariaServer? server) || server == null)
+        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out var server) || server == null)
         {
             await args.ReplyWithAtAsync("服务器不存在或未切换至一个服务器!");
             return;
@@ -34,9 +34,7 @@ public static class InventoryCommand
             try
             {
                 var builder = InventoryGenerateExtensions.FromPlayerData(result.PlayerData, server.Config.Name);
-                byte[] imageData = builder.Build();
-
-                await args.ReplyImageAsync(imageData);
+                await args.ReplyImageAsync(builder.Build());
             }
             catch (Exception ex)
             {

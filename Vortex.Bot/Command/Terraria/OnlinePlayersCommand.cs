@@ -14,15 +14,15 @@ public static class OnlinePlayersCommand
     [Main]
     public static async Task ShowOnlinePlayers(GroupCommandArgs args)
     {
-        TerrariaServerService? serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
+        var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
         if (serverManager == null)
         {
             await args.ReplyWithAtAsync("服务器管理器未初始化");
             return;
         }
 
-        long groupId = args.GroupUin;
-        List<TerrariaServer> servers = groupId > 0
+        var groupId = args.GroupUin;
+        var servers = groupId > 0
             ? [.. serverManager.GetServersByGroup(groupId)]
             : serverManager.GetAllServers().ToList();
 
@@ -33,11 +33,11 @@ public static class OnlinePlayersCommand
         }
 
         var sb = new StringBuilder();
-        foreach (TerrariaServer? server in servers)
+        foreach (var server in servers)
         {
             var online = await server.GetOnlinePlayersAsync();
-            int playerCount = online?.Players?.Count ?? 0;
-            int maxCount = online?.MaxCount ?? 0;
+            var playerCount = online?.Players?.Count ?? 0;
+            var maxCount = online?.MaxCount ?? 0;
 
             sb.AppendLine($"[{server.Config.Name}] 在线玩家 ({playerCount}/{maxCount})");
 

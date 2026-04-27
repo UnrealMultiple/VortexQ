@@ -10,8 +10,8 @@ public static class ReloadEvents
 
     public static async Task TriggerReloadAsync(long triggerUin)
     {
-        ReloadEventArgs args = new ReloadEventArgs(triggerUin);
-        Stopwatch sw = Stopwatch.StartNew();
+        var args = new ReloadEventArgs(triggerUin);
+        var sw = Stopwatch.StartNew();
 
         if (OnReload != null)
         {

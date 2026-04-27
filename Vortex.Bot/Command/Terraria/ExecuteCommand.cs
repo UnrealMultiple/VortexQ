@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Core.Service;
-using Vortex.Protocol.Packets;
 
 namespace Vortex.Bot.Command.Terraria;
 
@@ -16,14 +15,14 @@ public static class ExecuteCommand
     [Flexible]
     public static async Task ExecuteServerCommand(GroupCommandArgs args)
     {
-        TerrariaServerService? serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
+        var serverManager = args.Context.Server?.Services.GetService<TerrariaServerService>();
         if (serverManager == null)
         {
             await args.ReplyWithAtAsync("服务器管理器未初始化");
             return;
         }
 
-        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out TerrariaServer? server) || server == null)
+        if (!serverManager.TryGetUserServer(args.SenderUin, args.GroupUin, out var server) || server == null)
         {
             await args.ReplyWithAtAsync("请先使用 '切换 <名称>' 选择要操作的服务器!");
             return;
@@ -35,12 +34,12 @@ public static class ExecuteCommand
             return;
         }
 
-        string command = "/" + string.Join(" ", args.Params);
-        ExecuteCommandPacketResponse? result = await server.ExecuteCommandAsync(command);
+        var command = "/" + string.Join(" ", args.Params);
+        var result = await server.ExecuteCommandAsync(command);
 
         if (result?.Success == true)
         {
-            string output = result.Params != null && result.Params.Count > 0
+            var output = result.Params != null && result.Params.Count > 0
                 ? string.Join("\n", result.Params)
                 : "命令执行成功(无输出)";
             await args.ReplyWithAtAsync($"[{server.Config.Name}] 执行结果:\n{output}");

@@ -21,7 +21,7 @@ public class OnlineCaptchaResolver(ILogger<OnlineCaptchaResolver> logger, IOptio
 
     public async Task<(string, string)> ResolveCaptchaAsync(string url, CancellationToken token)
     {
-        string solveUrl = string.Format(Url, url.Split('?')[1].Replace("uin=0", $"uin={_bot.BotUin}"));
+        var solveUrl = string.Format(Url, url.Split('?')[1].Replace("uin=0", $"uin={_bot.BotUin}"));
         _logger.LogCaptchaQrCode(QrCodeUtility.GenerateAscii(solveUrl, _configuration.Login.CompatibleQrCode));
         _logger.LogCaptchaTip(solveUrl);
 
@@ -29,8 +29,8 @@ public class OnlineCaptchaResolver(ILogger<OnlineCaptchaResolver> logger, IOptio
         {
             token.ThrowIfCancellationRequested();
 
-            string queryUrl = string.Format(QueryUrl, _bot.BotUin);
-            HttpResponseMessage response = await _client.GetAsync(queryUrl, token);
+            var queryUrl = string.Format(QueryUrl, _bot.BotUin);
+            var response = await _client.GetAsync(queryUrl, token);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 _logger.LogCaptchaWaiting();
@@ -42,8 +42,8 @@ public class OnlineCaptchaResolver(ILogger<OnlineCaptchaResolver> logger, IOptio
                 throw new Exception($"Unexpected http status code({response.StatusCode})");
             }
 
-            string result = await response.Content.ReadAsStringAsync(token);
-            string? json = JsonNode.Parse(result)?["data"]?.GetValue<string>();
+            var result = await response.Content.ReadAsStringAsync(token);
+            var json = JsonNode.Parse(result)?["data"]?.GetValue<string>();
             if (json == null) continue;
 
             return (json.Split('|')[0], json.Split('|')[1]);

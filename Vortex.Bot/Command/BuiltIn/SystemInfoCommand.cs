@@ -1,5 +1,4 @@
 using Vortex.Bot.Attributes;
-using Vortex.Bot.Utility;
 using Vortex.Bot.Utility.Images;
 
 namespace Vortex.Bot.Command.BuiltIn;
@@ -14,9 +13,9 @@ public static class SystemInfoCommand
     [Main]
     public static async Task ShowSystemInfo(CommandArgs args)
     {
-        SystemMonitor monitor = args.Context.SystemMonitor;
+        var monitor = args.Context.SystemMonitor;
 
-        ProfileItemBuilder builder = ProfileItemBuilder.Create()
+        var builder = ProfileItemBuilder.Create()
             .SetTitle("系统信息")
             .SetMemberUin(args.SenderUin)
             .SetAvatarSize(150)

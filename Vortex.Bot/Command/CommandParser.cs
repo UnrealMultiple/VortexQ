@@ -44,7 +44,7 @@ internal static class CommandParser
 #pragma warning disable CS8622
             return (arg, out obj) =>
             {
-                bool result = parser(arg, out object? parsedObj);
+                var result = parser(arg, out var parsedObj);
 #pragma warning disable CS8601
                 obj = parsedObj;
 #pragma warning restore CS8601
@@ -60,13 +60,13 @@ internal static class CommandParser
     {
         if (Nullable.GetUnderlyingType(type) is Type underlyingType)
         {
-            string baseName = FriendlyNames.TryGetValue(underlyingType, out string? name)
+            var baseName = FriendlyNames.TryGetValue(underlyingType, out var name)
                 ? name
                 : underlyingType.Name.ToLower();
             return baseName + "?";
         }
 
-        return FriendlyNames.TryGetValue(type, out string? friendlyName)
+        return FriendlyNames.TryGetValue(type, out var friendlyName)
             ? friendlyName
             : type.Name.ToLower();
     }
@@ -123,28 +123,28 @@ internal static class CommandParser
 
     private static bool TryParseDateTime(string arg, out object obj)
     {
-        bool result = DateTime.TryParse(arg, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime t);
+        var result = DateTime.TryParse(arg, CultureInfo.InvariantCulture, DateTimeStyles.None, out var t);
         obj = t;
         return result;
     }
 
     private static bool TryParseDouble(string arg, out object obj)
     {
-        bool result = double.TryParse(arg, CultureInfo.InvariantCulture, out double t);
+        var result = double.TryParse(arg, CultureInfo.InvariantCulture, out var t);
         obj = t;
         return result;
     }
 
     private static bool TryParseFloat(string arg, out object obj)
     {
-        bool result = float.TryParse(arg, CultureInfo.InvariantCulture, out float t);
+        var result = float.TryParse(arg, CultureInfo.InvariantCulture, out var t);
         obj = t;
         return result;
     }
 
     private static bool TryParseUlong(string arg, out object obj)
     {
-        bool result = ulong.TryParse(arg, out ulong t);
+        var result = ulong.TryParse(arg, out var t);
         obj = t;
         return result;
     }

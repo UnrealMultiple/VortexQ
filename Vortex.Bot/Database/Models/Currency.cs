@@ -27,7 +27,7 @@ public class Currency
             throw new ArgumentException("增加数量必须大于0", nameof(amount));
         }
 
-        Currency? currency = Query(userId);
+        var currency = Query(userId);
         if (currency == null)
         {
             currency = new Currency
@@ -53,12 +53,7 @@ public class Currency
             throw new ArgumentException("扣除数量必须大于0", nameof(amount));
         }
 
-        Currency? currency = Query(userId);
-        if (currency == null)
-        {
-            throw new InvalidOperationException("用户没有货币记录，无法扣除！");
-        }
-
+        var currency = Query(userId) ?? throw new InvalidOperationException("用户没有货币记录，无法扣除！");
         if (currency.Num < amount)
         {
             throw new InvalidOperationException($"余额不足！当前余额: {currency.Num}，需要: {amount}");
@@ -77,7 +72,7 @@ public class Currency
             throw new ArgumentException("数量不能为负数", nameof(amount));
         }
 
-        Currency? currency = Query(userId);
+        var currency = Query(userId);
         if (currency == null)
         {
             currency = new Currency

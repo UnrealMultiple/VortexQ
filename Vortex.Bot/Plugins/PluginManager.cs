@@ -42,10 +42,10 @@ public sealed class PluginManager : IDisposable
     {
         _logger.LogInformation("Loading plugins...");
 
-        string[] pluginDirs = Directory.GetDirectories(_pluginsDirectory);
-        List<(PluginInfo Info, int Order)> loadedPlugins = new List<(PluginInfo Info, int Order)>();
+        var pluginDirs = Directory.GetDirectories(_pluginsDirectory);
+        var loadedPlugins = new List<(PluginInfo Info, int Order)>();
 
-        foreach (string pluginDir in pluginDirs)
+        foreach (var pluginDir in pluginDirs)
         {
             try
             {
@@ -64,10 +64,10 @@ public sealed class PluginManager : IDisposable
 
     private List<PluginInfo> LoadPluginFromDirectory(string pluginDirectory)
     {
-        string dirName = Path.GetFileName(pluginDirectory);
+        var dirName = Path.GetFileName(pluginDirectory);
         _logger.LogDebug("Loading plugin directory: {Directory}", dirName);
 
-        PluginLoadContext loadContext = new PluginLoadContext(pluginDirectory, $"PluginContext_{dirName}_{Guid.NewGuid():N}");
+        var loadContext = new PluginLoadContext(pluginDirectory, $"PluginContext_{dirName}_{Guid.NewGuid():N}");
         _loadContexts.Add(loadContext);
 
         loadContext.LoadAssemblies();
@@ -79,7 +79,7 @@ public sealed class PluginManager : IDisposable
         }
 
         var plugins = loadContext.CreatePluginInstances(_serviceProvider);
-        List<PluginInfo> result = new List<PluginInfo>();
+        var result = new List<PluginInfo>();
 
         foreach (var plugin in plugins)
         {
@@ -89,14 +89,14 @@ public sealed class PluginManager : IDisposable
                 continue;
             }
 
-            PluginContext pluginContext = new PluginContext(
+            var pluginContext = new PluginContext(
                 _loggerFactory.CreateLogger(plugin.GetType()),
                 _vortexContext,
                 pluginDirectory
             );
 
             plugin.Context = pluginContext;
-            PluginInfo pluginInfo = new PluginInfo(plugin, pluginDirectory, loadContext);
+            var pluginInfo = new PluginInfo(plugin, pluginDirectory, loadContext);
             _plugins[plugin.Name] = pluginInfo;
             result.Add(pluginInfo);
 
@@ -109,7 +109,7 @@ public sealed class PluginManager : IDisposable
 
     private void InitializePlugins(List<(PluginInfo Info, int Order)> plugins)
     {
-        List<PluginInfo> sortedPlugins = plugins
+        var sortedPlugins = plugins
             .OrderBy(static p => p.Order)
             .Select(static p => p.Info)
             .ToList();
@@ -166,7 +166,7 @@ public sealed class PluginManager : IDisposable
             return false;
         }
 
-        string pluginDir = pluginInfo.Directory;
+        var pluginDir = pluginInfo.Directory;
         UnloadPlugin(pluginName);
 
         CollectGarbage();
@@ -199,7 +199,7 @@ public sealed class PluginManager : IDisposable
     {
         _logger.LogInformation("Reloading all plugins...");
 
-        foreach (string? pluginName in _plugins.Keys.ToList())
+        foreach (var pluginName in _plugins.Keys.ToList())
             UnloadPlugin(pluginName);
 
         foreach (var context in _loadContexts)
@@ -227,7 +227,7 @@ public sealed class PluginManager : IDisposable
 
         _logger.LogInformation("Unloading all plugins...");
 
-        foreach (string? pluginName in _plugins.Keys.ToList())
+        foreach (var pluginName in _plugins.Keys.ToList())
             UnloadPlugin(pluginName);
 
         foreach (var context in _loadContexts)

@@ -30,7 +30,7 @@ public abstract class CommandArgs(VortexContext context, List<string> @params, B
 #pragma warning disable CS8618
     public Account Account { get; protected set; }
 #pragma warning restore CS8618
-    public Vortex.Bot.Database.Models.Group Group { get; protected set; } = DefaultGroup.Instance;
+    public Group Group { get; protected set; } = DefaultGroup.Instance;
     public bool IsSuperAdmin { get; protected set; }
     protected void InitializeAccount()
     {
@@ -42,10 +42,7 @@ public abstract class CommandArgs(VortexContext context, List<string> @params, B
         }
     }
 
-    public bool HasPermission(string permission)
-    {
-        return IsSuperAdmin ? true : Group.HasPermission(permission);
-    }
+    public bool HasPermission(string permission) => IsSuperAdmin || Group.HasPermission(permission);
 
     public abstract Task ReplyAsync(string message);
 
@@ -55,10 +52,7 @@ public abstract class CommandArgs(VortexContext context, List<string> @params, B
 
     public abstract Task ReplyWithAtAsync(string message);
 
-    public string GetTextContent()
-    {
-        return MessageChain == null ? string.Empty : string.Join("", MessageChain.OfType<TextEntity>().Select(t => t.Text));
-    }
+    public string GetTextContent() => MessageChain == null ? string.Empty : string.Join("", MessageChain.OfType<TextEntity>().Select(t => t.Text));
 }
 
 public class GroupCommandArgs : CommandArgs
@@ -191,7 +185,7 @@ public class ServerCommandArgs : CommandArgs
 
     public override async Task ReplyAsync(MessageChain chain)
     {
-        string text = string.Join("", chain.OfType<TextEntity>().Select(t => t.Text));
+        var text = string.Join("", chain.OfType<TextEntity>().Select(t => t.Text));
         await ReplyAsync(text);
     }
 

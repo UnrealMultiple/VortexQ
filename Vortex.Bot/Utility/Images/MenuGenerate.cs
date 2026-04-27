@@ -156,24 +156,24 @@ public class MenuGenerate : ImageGeneratorBase, IImageGenerator<MenuBuilder>
     {
         if (_currentBuilder == null) throw new InvalidOperationException("Builder not set");
 
-        Font font = CreateFont(Config.FontSize);
-        Font smallFont = CreateFont(SmallFontSize);
-        Font signatureFont = CreateFont(Config.SignatureFontSize);
+        var font = CreateFont(Config.FontSize);
+        var smallFont = CreateFont(SmallFontSize);
+        var signatureFont = CreateFont(Config.SignatureFontSize);
 
         _totalWidth = (CardMargin * 2) + (CellWidth * LineMaxMenu) + (TextCellSpacing * (LineMaxMenu - 1)) + (CardPadding * 2);
         _totalHeight = (Config.CardTopMargin * 2) + AvatarTop + Config.AvatarSize + AvatarBottom + CellSpaced + (CardTopPadding * 2);
 
-        int currentLineHeight = 0;
-        int cellCountInLine = 0;
+        var currentLineHeight = 0;
+        var cellCountInLine = 0;
 
-        foreach (MenuCell cell in _currentBuilder.MenuCells)
+        foreach (var cell in _currentBuilder.MenuCells)
         {
-            TextOptions textOptions = new TextOptions(font) { WrappingLength = CellWidth };
-            FontRectangle textSize = TextMeasurer.MeasureSize(cell.Text, textOptions);
-            TextOptions smallTextOptions = new TextOptions(smallFont) { WrappingLength = CellWidth };
-            FontRectangle smallTextSize = TextMeasurer.MeasureSize(cell.SmallText, smallTextOptions);
+            var textOptions = new TextOptions(font) { WrappingLength = CellWidth };
+            var textSize = TextMeasurer.MeasureSize(cell.Text, textOptions);
+            var smallTextOptions = new TextOptions(smallFont) { WrappingLength = CellWidth };
+            var smallTextSize = TextMeasurer.MeasureSize(cell.SmallText, smallTextOptions);
 
-            int cellHeight = (int)(textSize.Height + smallTextSize.Height) + (TextCellSpacing * 2) + 8;
+            var cellHeight = (int)(textSize.Height + smallTextSize.Height) + (TextCellSpacing * 2) + 8;
 
             if (cellCountInLine >= LineMaxMenu)
             {
@@ -190,8 +190,8 @@ public class MenuGenerate : ImageGeneratorBase, IImageGenerator<MenuBuilder>
 
         _totalHeight += currentLineHeight;
 
-        TextOptions signatureOptions = new TextOptions(signatureFont) { WrappingLength = _totalWidth };
-        FontRectangle signatureSize = TextMeasurer.MeasureSize(Config.Signature, signatureOptions);
+        var signatureOptions = new TextOptions(signatureFont) { WrappingLength = _totalWidth };
+        var signatureSize = TextMeasurer.MeasureSize(Config.Signature, signatureOptions);
         _totalHeight += (int)signatureSize.Height + 60;
 
         return (_totalWidth, _totalHeight);
@@ -201,38 +201,38 @@ public class MenuGenerate : ImageGeneratorBase, IImageGenerator<MenuBuilder>
     {
         if (_currentBuilder == null) throw new InvalidOperationException("Builder not set");
 
-        Font font = CreateFont(Config.FontSize);
-        Font smallFont = CreateFont(SmallFontSize);
+        var font = CreateFont(Config.FontSize);
+        var smallFont = CreateFont(SmallFontSize);
 
-        int currentX = CardMargin + CardPadding;
-        int currentY = Config.CardTopMargin + AvatarTop + Config.AvatarSize + AvatarBottom + CardTopPadding;
-        int currentLineHeight = 0;
-        int cellCountInLine = 0;
+        var currentX = CardMargin + CardPadding;
+        var currentY = Config.CardTopMargin + AvatarTop + Config.AvatarSize + AvatarBottom + CardTopPadding;
+        var currentLineHeight = 0;
+        var cellCountInLine = 0;
 
         DrawCardBackgroundWithGlassEffect(ctx, CardPadding, CardTopPadding, width - (2 * CardPadding), height - (CardTopPadding * 2));
         DrawCenteredAvatar(ctx, AvatarTop + CardTopPadding, width);
 
-        foreach (MenuCell cell in _currentBuilder.MenuCells)
+        foreach (var cell in _currentBuilder.MenuCells)
         {
             DrawMenuCell(ctx, cell, ref currentX, ref currentY, ref currentLineHeight, ref cellCountInLine, font, smallFont);
         }
 
-        Font signatureFont = CreateFont(Config.SignatureFontSize);
+        var signatureFont = CreateFont(Config.SignatureFontSize);
         var signatureOptions = new TextOptions(signatureFont) { WrappingLength = width };
-        FontRectangle signatureSize = TextMeasurer.MeasureSize(Config.Signature, signatureOptions);
-        float signatureX = (width - signatureSize.Width) / 2;
-        float signatureY = currentY + currentLineHeight + 60;
+        var signatureSize = TextMeasurer.MeasureSize(Config.Signature, signatureOptions);
+        var signatureX = (width - signatureSize.Width) / 2;
+        var signatureY = currentY + currentLineHeight + 60;
         ctx.DrawText(Config.Signature, signatureFont, Color.Gray, new PointF(signatureX, signatureY));
     }
 
     private void DrawMenuCell(IImageProcessingContext ctx, MenuCell cell, ref int currentX, ref int currentY, ref int currentLineHeight, ref int cellCountInLine, Font font, Font smallFont)
     {
-        TextOptions textOptions = new TextOptions(font) { WrappingLength = CellWidth };
-        FontRectangle textSize = TextMeasurer.MeasureSize(cell.Text, textOptions);
-        TextOptions smallTextOptions = new TextOptions(smallFont) { WrappingLength = CellWidth };
-        FontRectangle smallTextSize = TextMeasurer.MeasureSize(cell.SmallText, smallTextOptions);
+        var textOptions = new TextOptions(font) { WrappingLength = CellWidth };
+        var textSize = TextMeasurer.MeasureSize(cell.Text, textOptions);
+        var smallTextOptions = new TextOptions(smallFont) { WrappingLength = CellWidth };
+        var smallTextSize = TextMeasurer.MeasureSize(cell.SmallText, smallTextOptions);
 
-        int cellHeight = (int)(textSize.Height + smallTextSize.Height) + (TextCellSpacing * 2) + 8;
+        var cellHeight = (int)(textSize.Height + smallTextSize.Height) + (TextCellSpacing * 2) + 8;
 
         if (cellCountInLine >= LineMaxMenu)
         {
@@ -246,13 +246,13 @@ public class MenuGenerate : ImageGeneratorBase, IImageGenerator<MenuBuilder>
             currentLineHeight = Math.Max(currentLineHeight, cellHeight);
         }
 
-        Color textColor = cell.UseColor ? cell.Color : Color.Black;
+        var textColor = cell.UseColor ? cell.Color : Color.Black;
 
         ctx.DrawRoundedRectangle(currentX, currentY, CellWidth, currentLineHeight, 30, Config.CardBackgroundColor);
         ctx.DrawRoundedRectanglePath(currentX, currentY, CellWidth, currentLineHeight, 30, 6, Color.Wheat);
 
-        float totalTextHeight = textSize.Height + smallTextSize.Height + 8;
-        float startY = currentY + (currentLineHeight - totalTextHeight) / 2;
+        var totalTextHeight = textSize.Height + smallTextSize.Height + 8;
+        var startY = currentY + (currentLineHeight - totalTextHeight) / 2;
 
         ctx.DrawText(new RichTextOptions(font)
         {

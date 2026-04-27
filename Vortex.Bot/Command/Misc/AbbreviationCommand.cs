@@ -25,8 +25,8 @@ public static class AbbreviationCommand
             string url = $"https://oiapi.net/API/Nbnhhsh?text={Uri.EscapeDataString(abbreviation)}";
             var result = await HttpUtility.GetStringAsync(url);
 
-            JsonNode? data = JsonNode.Parse(result);
-            JsonArray? trans = data?["data"]?[0]?["trans"]?.AsArray();
+            var data = JsonNode.Parse(result);
+            var trans = data?["data"]?[0]?["trans"]?.AsArray();
 
             if (trans != null && trans.Count != 0)
             {

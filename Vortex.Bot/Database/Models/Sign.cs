@@ -25,8 +25,8 @@ public class Sign
 
     public static Sign DoSignIn(long userId)
     {
-        Sign? signInfo = Query(userId);
-        string today = DateTime.Now.ToString("yyyyMMdd");
+        var signInfo = Query(userId);
+        var today = DateTime.Now.ToString("yyyyMMdd");
 
         if (signInfo == null)
         {
@@ -55,17 +55,17 @@ public class Sign
 
     public static bool HasSignedToday(long userId)
     {
-        Sign? signInfo = Query(userId);
-        return signInfo == null ? false : signInfo.LastDate == DateTime.Now.ToString("yyyyMMdd");
+        var signInfo = Query(userId);
+        return signInfo != null && signInfo.LastDate == DateTime.Now.ToString("yyyyMMdd");
     }
 
 
     public static int GetConsecutiveDays(long userId)
     {
-        Sign? signInfo = Query(userId);
+        var signInfo = Query(userId);
         if (signInfo == null) return 0;
 
-        string yesterday = DateTime.Now.AddDays(-1).ToString("yyyyMMdd");
+        var yesterday = DateTime.Now.AddDays(-1).ToString("yyyyMMdd");
         return signInfo.LastDate == yesterday || signInfo.LastDate == DateTime.Now.ToString("yyyyMMdd") ? 1 : 0;
     }
 

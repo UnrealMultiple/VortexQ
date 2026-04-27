@@ -12,7 +12,7 @@ public static class SignCommand
     [Main]
     public static async Task SignIn(GroupCommandArgs args)
     {
-        Account account = args.Account;
+        var account = args.Account;
         if (account == null)
         {
             await args.ReplyAsync("请先注册账号！");
