@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net;
@@ -11,29 +12,24 @@ using Vortex.Protocol.Serialization;
 
 namespace Vortex.Bot.Core.Service;
 
-public partial class VortexSocketService(
+public sealed class VortexSocketService(
     ILogger<VortexSocketService> logger,
     IConfiguration configuration,
     IServiceProvider serviceProvider,
-    VortexContext vortexContext,
     ClientConnectionService connectionManager,
     PacketHandlerService handlerManager) : BackgroundService
 {
     private readonly ILogger<VortexSocketService> _logger = logger;
-    private readonly SocketConfiguration _config = configuration.GetSection("Core:Socket").Get<SocketConfiguration>() ?? new SocketConfiguration();
+    private readonly SocketConfiguration _config = configuration.GetSection("Core:Socket").Get<SocketConfiguration>() ?? new();
     private readonly PacketSerializer _serializer = new();
-    private readonly VortexContext _vortexContext = vortexContext;
-
     private readonly ClientConnectionService _connectionManager = connectionManager;
     private readonly PacketHandlerService _handlerManager = handlerManager;
 
     private TcpListener? _listener;
-    private bool _isRunning;
 
-    public VortexContext VortexContext => _vortexContext;
     public ClientConnectionService Connections => _connectionManager;
     public PacketHandlerService Handlers => _handlerManager;
-    public bool IsRunning => _isRunning;
+    public bool IsRunning { get; private set; }
     public IServiceProvider Services => serviceProvider;
 
     public event Action<ClientConnection>? OnClientConnected
@@ -61,7 +57,7 @@ public partial class VortexSocketService(
         _handlerManager.RegisterHandlersFromAssembly(System.Reflection.Assembly.GetExecutingAssembly());
         _listener = new TcpListener(IPAddress.Any, _config.Port);
         _listener.Start();
-        _isRunning = true;
+        IsRunning = true;
 
         _logger.LogServerStarted(_config.Port);
 
@@ -79,7 +75,7 @@ public partial class VortexSocketService(
         }
         finally
         {
-            _isRunning = false;
+            IsRunning = false;
             _listener?.Stop();
             await _connectionManager.DisconnectAllAsync();
         }
@@ -119,16 +115,13 @@ public partial class VortexSocketService(
                 return;
             }
 
-            client = HandleIdentity(identity, tcpClient, endpoint);
+            client = _connectionManager.RegisterClient(identity, tcpClient, endpoint);
             await SendResponseAsync(stream, CreateIdentityResponse(client), cancellationToken);
+            _logger.LogClientRegistered(client.ClientName, client.ClientId);
 
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                var packet = await ReadPacketAsync(stream, cancellationToken);
-                if (packet == null) break;
+            RegisterToServerManager(client);
 
-                await ProcessAndRespondAsync(stream, packet, client, cancellationToken);
-            }
+            await ProcessClientPacketsAsync(stream, client, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -138,19 +131,70 @@ public partial class VortexSocketService(
         {
             if (client != null)
             {
-                try
-                {
-                    var serverManager = Services.GetService(typeof(TerrariaServerService)) as TerrariaServerService;
-                    serverManager?.UnregisterClientConnection(client.ClientId);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogUnregisterClientError(ex.Message);
-                }
-
+                UnregisterFromServerManager(client.ClientId);
                 await _connectionManager.RemoveClientAsync(client.ClientId);
             }
             tcpClient.Close();
+        }
+    }
+
+    private async Task ProcessClientPacketsAsync(NetworkStream stream, ClientConnection client, CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var packet = await ReadPacketAsync(stream, cancellationToken);
+            if (packet == null) break;
+
+            var context = CreateRouteContext(client);
+            _logger.LogPacketReceived(packet.PacketID, client.ClientName);
+            OnPacketReceived?.Invoke(client, packet);
+
+            var response = await _handlerManager.ProcessAsync(packet, context);
+
+            if (response != null)
+            {
+                await SendResponseAsync(stream, response, cancellationToken);
+                _logger.LogPacketSent(response.PacketID, client.ClientName);
+            }
+        }
+    }
+
+    private PacketRouteContext CreateRouteContext(ClientConnection client)
+    {
+        var serverService = Services.GetService<TerrariaServerService>();
+        return new PacketRouteContext
+        {
+            SenderClientId = client.ClientId,
+            SenderSessionId = client.SessionId,
+            SenderConnection = client,
+            ClientName = client.ClientName,
+            Server = serverService?.GetServer(client.ClientName)
+        };
+    }
+
+    private void RegisterToServerManager(ClientConnection client)
+    {
+        try
+        {
+            var serverManager = Services.GetService<TerrariaServerService>();
+            serverManager?.RegisterClientConnection(client.ClientName, client.ClientId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogRegisterClientError(ex);
+        }
+    }
+
+    private void UnregisterFromServerManager(Guid clientId)
+    {
+        try
+        {
+            var serverManager = Services.GetService<TerrariaServerService>();
+            serverManager?.UnregisterClientConnection(clientId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogUnregisterClientError(ex.Message);
         }
     }
 
@@ -194,23 +238,6 @@ public partial class VortexSocketService(
         }
     }
 
-    private ClientConnection HandleIdentity(ClientIdentityPacket packet, TcpClient tcpClient, string endpoint)
-    {
-        var client = _connectionManager.RegisterClient(packet, tcpClient, endpoint);
-        _logger.LogClientRegistered(client.ClientName, client.ClientId);
-        try
-        {
-            var serverManager = Services.GetService(typeof(TerrariaServerService)) as TerrariaServerService;
-            serverManager?.RegisterClientConnection(client.ClientName, client.ClientId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogRegisterClientError(ex);
-        }
-
-        return client;
-    }
-
     private static ClientIdentityResponsePacket CreateIdentityResponse(ClientConnection client)
     {
         return new ClientIdentityResponsePacket
@@ -223,39 +250,11 @@ public partial class VortexSocketService(
         };
     }
 
-    private async Task ProcessAndRespondAsync(
-        NetworkStream stream,
-        INetPacket packet,
-        ClientConnection client,
-        CancellationToken cancellationToken)
-    {
-        var context = new PacketRouteContext
-        {
-            SenderClientId = client.ClientId,
-            SenderSessionId = client.SessionId,
-            SenderConnection = client
-        };
-
-        _logger.LogPacketReceived(packet.PacketID, client.ClientName);
-
-        OnPacketReceived?.Invoke(client, packet);
-
-        var response = await _handlerManager.ProcessAsync(packet, context);
-
-        if (response != null)
-        {
-            await SendResponseAsync(stream, response, cancellationToken);
-            _logger.LogPacketSent(response.PacketID, client.ClientName);
-        }
-    }
-
     private async Task SendResponseAsync(NetworkStream stream, INetPacket packet, CancellationToken cancellationToken)
     {
         var buffer = _serializer.Serialize(packet);
         await stream.WriteAsync(buffer, cancellationToken);
     }
-
-    #region 便捷方法
 
     public async Task<bool> SendToClientAsync(Guid clientId, INetPacket packet)
     {
@@ -337,8 +336,6 @@ public partial class VortexSocketService(
             return null;
         }
     }
-
-    #endregion
 }
 
 public static partial class VortexSocketServiceLoggerExtension
@@ -379,7 +376,7 @@ public static partial class VortexSocketServiceLoggerExtension
     [LoggerMessage(LogLevel.Debug, "Data received: {data}")]
     public static partial void LogDataReceived(this ILogger<VortexSocketService> logger, string data);
 
-    [LoggerMessage(LogLevel.Error, "[VortexServer] 反序列化失败")]
+    [LoggerMessage(LogLevel.Error, "[VortexServer] Deserialization failed")]
     public static partial void LogDeserializationError(this ILogger<VortexSocketService> logger, Exception ex);
 
     [LoggerMessage(LogLevel.Information, "[VortexServer] Client registered: {ClientName} ({ClientId})")]
@@ -406,4 +403,3 @@ public static partial class VortexSocketServiceLoggerExtension
     [LoggerMessage(LogLevel.Warning, "[VortexServer] Request timeout for {ClientId}")]
     public static partial void LogRequestTimeout(this ILogger<VortexSocketService> logger, Guid clientId);
 }
-

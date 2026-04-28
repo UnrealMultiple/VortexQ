@@ -1,6 +1,5 @@
-﻿using Lagrange.Core.Common.Interface;
+using Lagrange.Core;
 using Lagrange.Core.Message;
-using Microsoft.Extensions.DependencyInjection;
 using Vortex.Bot.Core.Service;
 using Vortex.Bot.Models;
 using Vortex.Bot.Processing;
@@ -8,20 +7,24 @@ using Vortex.Protocol.Packets;
 
 namespace Vortex.Bot.Handlers;
 
-public class PlayerJoinHandler : RoutedPushHandlerBase<PlayerJoinPacket>
+public class PlayerJoinHandler(
+    VortexContext vortexContext,
+    BotContext botContext,
+    VortexSocketService socketService,
+    TerrariaServerService serverService)
+    : RoutedPushHandlerBase<PlayerJoinPacket>(vortexContext, botContext, socketService, serverService)
 {
     public override void Handle(PlayerJoinPacket packet, PacketRouteContext context)
     {
-        var servers = Context?.Server?.Services.GetService<TerrariaServerService>();
-        if (servers == null) return;
         var message = new MessageBuilder()
-        .Text($"玩家 {packet.Player.Name}: 加入服务器...")
-        .Build();
-        foreach (var server in servers.GetAllServers())
+            .Text($"[{context.ClientName}] 玩家 {packet.Player.Name} 加入服务器")
+            .Build();
+
+        if (context.Server?.Config.ForwardGroups != null)
         {
-            foreach (var groupid in server.Config.Groups)
+            foreach (var groupId in context.Server.Config.ForwardGroups)
             {
-                Context?.BotContext.SendGroupMessage(groupid, message);
+                SendGroupMessage(groupId, message);
             }
         }
     }

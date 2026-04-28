@@ -1,12 +1,13 @@
+using Vortex.Bot.Core.Service;
+
 namespace Vortex.Bot.Models;
 
-public class PacketRouteContext
+public sealed class PacketRouteContext
 {
-    public Guid SenderClientId { get; set; }
-
-    public int SenderSessionId { get; set; }
-
-    public ClientConnection SenderConnection { get; set; } = null!;
-
-    public DateTime ReceiveTime { get; set; } = DateTime.Now;
+    public required Guid SenderClientId { get; init; }
+    public required int SenderSessionId { get; init; }
+    public required ClientConnection SenderConnection { get; init; }
+    public DateTime ReceiveTime { get; init; } = DateTime.Now;
+    public required string ClientName { get; init; }
+    public required TerrariaServer? Server { get; init; }
 }

@@ -1,6 +1,5 @@
-using Lagrange.Core.Common.Interface;
+using Lagrange.Core;
 using Lagrange.Core.Message;
-using Microsoft.Extensions.DependencyInjection;
 using Vortex.Bot.Core.Service;
 using Vortex.Bot.Models;
 using Vortex.Bot.Processing;
@@ -8,25 +7,33 @@ using Vortex.Protocol.Packets;
 
 namespace Vortex.Bot.Handlers;
 
-public class PlayerMessageHandler : RoutedPushHandlerBase<PlayerMessagePacket>
+public class PlayerMessageHandler(
+    VortexContext vortexContext,
+    BotContext botContext,
+    VortexSocketService socketService,
+    TerrariaServerService serverService,
+    Command.CommandManager commandManager)
+    : RoutedPushHandlerBase<PlayerMessagePacket>(vortexContext, botContext, socketService, serverService)
 {
+    private readonly Command.CommandManager _commandManager = commandManager;
+
     public override void Handle(PlayerMessagePacket packet, PacketRouteContext context)
     {
         if (packet.IsCommand)
         {
-            Server?.VortexContext.CommandManager.ExecuteServerAsync(packet.Message, Context, packet.Player, context.SenderSessionId);
+            _ = _commandManager.ExecuteServerAsync(packet.Message, VortexContext, packet.Player, context.SenderSessionId);
             return;
         }
-        var servers = Context?.Server?.Services.GetService<TerrariaServerService>();
-        if (servers == null) return;
+
         var message = new MessageBuilder()
-            .Text($"Íæ¼Ò {packet.Player.Name}: {packet.Message}")
+            .Text($"[{context.ClientName}] {packet.Player.Name}: {packet.Message}")
             .Build();
-        foreach (var server in servers.GetAllServers())
+
+        if (context.Server?.Config.ForwardGroups != null)
         {
-            foreach (var groupid in server.Config.Groups)
+            foreach (var groupId in context.Server.Config.ForwardGroups)
             {
-                Context?.BotContext.SendGroupMessage(groupid, message);
+                SendGroupMessage(groupId, message);
             }
         }
     }

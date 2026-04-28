@@ -7,16 +7,12 @@ using Vortex.Protocol.Interfaces;
 
 namespace Vortex.Bot.Core.Service;
 
-public partial class PacketHandlerService(
+public sealed class PacketHandlerService(
     ILogger<PacketHandlerService> logger,
-    IServiceProvider serviceProvider,
-    VortexContext vortexContext)
+    IServiceProvider serviceProvider)
 {
     private readonly ILogger<PacketHandlerService> _logger = logger;
     private readonly IServiceProvider _serviceProvider = serviceProvider;
-    private readonly VortexContext _vortexContext = vortexContext;
-
-
     private readonly ConcurrentDictionary<byte, Func<INetPacket, PacketRouteContext, Task<IClientPacket?>>> _handlers = new();
 
     public void RegisterHandler<TRequest, TResponse>(IRoutedPacketHandler<TRequest, TResponse> handler)
@@ -68,9 +64,6 @@ public partial class PacketHandlerService(
         var instance = new TRequest();
         var packetId = (byte)instance.PacketID;
 
-        handler.Context = _vortexContext;
-        handler.Server = _vortexContext.Server;
-
         _handlers[packetId] = (packet, context) =>
         {
             if (packet is TRequest request)
@@ -90,9 +83,6 @@ public partial class PacketHandlerService(
         var instance = new TRequest();
         var packetId = (byte)instance.PacketID;
 
-        handler.Context = _vortexContext;
-        handler.Server = _vortexContext.Server;
-
         _handlers[packetId] = (packet, context) =>
         {
             if (packet is TRequest request)
@@ -107,13 +97,20 @@ public partial class PacketHandlerService(
 
     public void RegisterHandlersFromAssembly(System.Reflection.Assembly assembly)
     {
-        var routedHandlerTypes = assembly.GetTypes()
+        RegisterInterfaceHandlers(assembly);
+        RegisterRequestHandlers(assembly);
+        RegisterPushHandlers(assembly);
+    }
+
+    private void RegisterInterfaceHandlers(System.Reflection.Assembly assembly)
+    {
+        var handlerTypes = assembly.GetTypes()
             .Where(t => !t.IsAbstract && !t.IsInterface)
             .Where(t => t.GetInterfaces().Any(i =>
                 i.IsGenericType &&
                 i.GetGenericTypeDefinition() == typeof(IRoutedPacketHandler<,>)));
 
-        foreach (var handlerType in routedHandlerTypes)
+        foreach (var handlerType in handlerTypes)
         {
             var interfaceType = handlerType.GetInterfaces()
                 .First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRoutedPacketHandler<,>));
@@ -131,13 +128,16 @@ public partial class PacketHandlerService(
 
             method?.MakeGenericMethod(requestType, responseType).Invoke(this, [handlerInstance]);
         }
+    }
 
-        var baseHandlerTypes = assembly.GetTypes()
+    private void RegisterRequestHandlers(System.Reflection.Assembly assembly)
+    {
+        var handlerTypes = assembly.GetTypes()
             .Where(t => !t.IsAbstract && !t.IsInterface)
             .Where(t => t.BaseType?.IsGenericType == true &&
                        t.BaseType.GetGenericTypeDefinition() == typeof(RoutedRequestHandlerBase<,>));
 
-        foreach (var handlerType in baseHandlerTypes)
+        foreach (var handlerType in handlerTypes)
         {
             var baseType = handlerType.BaseType!;
             var genericArgs = baseType.GetGenericArguments();
@@ -145,7 +145,7 @@ public partial class PacketHandlerService(
             var responseType = genericArgs[1];
 
             var handlerInstance = _serviceProvider.GetService(handlerType)
-                ?? Activator.CreateInstance(handlerType)!;
+                ?? CreateInstance(handlerType);
 
             var method = GetType().GetMethods()
                 .Where(m => m.Name == nameof(RegisterHandler) && m.IsGenericMethod)
@@ -156,20 +156,23 @@ public partial class PacketHandlerService(
 
             method?.MakeGenericMethod(requestType, responseType).Invoke(this, [handlerInstance]);
         }
+    }
 
-        var pushHandlerTypes = assembly.GetTypes()
+    private void RegisterPushHandlers(System.Reflection.Assembly assembly)
+    {
+        var handlerTypes = assembly.GetTypes()
             .Where(t => !t.IsAbstract && !t.IsInterface)
             .Where(t => t.BaseType?.IsGenericType == true &&
                        t.BaseType.GetGenericTypeDefinition() == typeof(RoutedPushHandlerBase<>));
 
-        foreach (var handlerType in pushHandlerTypes)
+        foreach (var handlerType in handlerTypes)
         {
             var baseType = handlerType.BaseType!;
             var genericArgs = baseType.GetGenericArguments();
             var requestType = genericArgs[0];
 
             var handlerInstance = _serviceProvider.GetService(handlerType)
-                ?? Activator.CreateInstance(handlerType)!;
+                ?? CreateInstance(handlerType);
 
             var method = GetType().GetMethods()
                 .Where(m => m.Name == nameof(RegisterHandler) && m.IsGenericMethod)
@@ -181,6 +184,26 @@ public partial class PacketHandlerService(
 
             method?.MakeGenericMethod(requestType).Invoke(this, [handlerInstance]);
         }
+    }
+
+    private object CreateInstance(Type handlerType)
+    {
+        var constructor = handlerType.GetConstructors()
+            .OrderByDescending(c => c.GetParameters().Length)
+            .FirstOrDefault();
+
+        if (constructor == null)
+            return Activator.CreateInstance(handlerType)!;
+
+        var parameters = constructor.GetParameters();
+        var args = new object?[parameters.Length];
+
+        for (int i = 0; i < parameters.Length; i++)
+        {
+            args[i] = _serviceProvider.GetService(parameters[i].ParameterType);
+        }
+
+        return constructor.Invoke(args);
     }
 
     public async Task<IClientPacket?> ProcessAsync(INetPacket packet, PacketRouteContext context)
@@ -202,7 +225,6 @@ public partial class PacketHandlerService(
         return null;
     }
 
-
     public bool HasHandler(byte packetId) => _handlers.ContainsKey(packetId);
 
     public int HandlerCount => _handlers.Count;
@@ -212,8 +234,10 @@ public static partial class PacketHandlerServiceLoggerExtension
 {
     [LoggerMessage(LogLevel.Information, "Registered handler for packet {packetName}")]
     public static partial void LogHandlerRegistered(this ILogger<PacketHandlerService> logger, string packetName);
+
     [LoggerMessage(LogLevel.Information, "Registered push handler for packet {packetName}")]
     public static partial void LogPushHandlerRegistered(this ILogger<PacketHandlerService> logger, string packetName);
+
     [LoggerMessage(LogLevel.Error, "Error processing packet {packetId}: {message}")]
     public static partial void LogErrorProcessingPacket(this ILogger<PacketHandlerService> logger, Protocol.Enums.PacketType packetId, string message);
 }
