@@ -1,7 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
-using System.Text;
+using Microsoft.Extensions.Logging;
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Core.Service;
+using Vortex.Bot.Utility.Images;
 
 namespace Vortex.Bot.Command.Terraria;
 
@@ -31,30 +32,33 @@ public static class OnlinePlayersCommand
             await args.ReplyWithAtAsync("此群未配置任何服务器!");
             return;
         }
+        var builder = ServerOnlineBuilder.Create();
 
-        var sb = new StringBuilder();
         foreach (var server in servers)
         {
             var online = await server.GetOnlinePlayersAsync();
             var playerCount = online?.Players?.Count ?? 0;
             var maxCount = online?.MaxCount ?? 0;
 
-            sb.AppendLine($"[{server.Config.Name}] 在线玩家 ({playerCount}/{maxCount})");
-
-            if (online?.Success == true && online.Players != null && online.Players.Count > 0)
+            if (online?.Success == true && online.Players != null)
             {
-                sb.AppendLine(string.Join(", ", online.Players.Select(p => p.Name)));
-            }
-            else if (online?.Success == false)
-            {
-                sb.AppendLine("无法连接服务器");
+                builder.AddSection(server.Config.Name, playerCount, maxCount, online.Players);
             }
             else
             {
-                sb.AppendLine("暂无在线玩家");
+                builder.AddSection(server.Config.Name, 0, maxCount, []);
             }
-            sb.AppendLine();
         }
-        await args.ReplyAsync(sb.ToString().Trim());
+
+        try
+        {
+            var imageData = builder.Build();
+            await args.ReplyImageAsync(imageData);
+        }
+        catch (Exception ex)
+        {
+            args.Logger.LogError(ex, "生成在线玩家图片失败");
+            await args.ReplyWithAtAsync("生成在线玩家图片失败，请稍后重试");
+        }
     }
 }
