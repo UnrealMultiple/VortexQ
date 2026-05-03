@@ -157,9 +157,9 @@ public class ServerOnlineGenerate : IImageGenerator<ServerOnlineBuilder>
             else
             {
                 int playerRows = (int)Math.Ceiling((double)section.Players.Count / ColumnsPerSection);
-                sectionContentHeight = sectionHeaderHeight + (playerRows * PlayerItemHeight);
+                sectionContentHeight = sectionHeaderHeight + (playerRows * PlayerItemHeight) + ((playerRows - 1) * PlayerItemSpacing);
             }
-            
+
             int sectionHeight = sectionContentHeight + (CardPadding * 2);
             currentY += sectionHeight + SectionSpacing;
         }
@@ -283,7 +283,7 @@ public class ServerOnlineGenerate : IImageGenerator<ServerOnlineBuilder>
         else
         {
             int playerRows = (int)Math.Ceiling((double)section.Players.Count / ColumnsPerSection);
-            sectionContentHeight = 60 + (playerRows * PlayerItemHeight);
+            sectionContentHeight = 60 + (playerRows * PlayerItemHeight) + ((playerRows - 1) * PlayerItemSpacing);
         }
         int sectionHeight = sectionContentHeight + (CardPadding * 2);
 

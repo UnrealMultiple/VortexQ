@@ -9,7 +9,7 @@ namespace Vortex.Bot.Command.Terraria;
 [HelpText("开启或关闭服务器消息转发到当前群")]
 [CommandType(CommandType.Group)]
 [Permission("vortex.terraria.forwardmessage")]
-public class ForwardMessageCommand
+public static class ForwardMessageCommand
 {
     [Main]
     public async static Task ExecuteAsync(GroupCommandArgs args, string status)

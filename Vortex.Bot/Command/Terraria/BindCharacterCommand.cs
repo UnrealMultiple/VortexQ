@@ -9,7 +9,7 @@ namespace Vortex.Bot.Command.Terraria;
 [CommandType(CommandType.Group)]
 [Permission("vortex.terraria.bindcharacter")]
 [DefaultCommand]
-public class BindCharacterCommand
+public static class BindCharacterCommand
 {
     [Main]
     public static async Task Execute(GroupCommandArgs args, string characterName)
@@ -48,7 +48,7 @@ public class BindCharacterCommand
 [CommandType(CommandType.Server)]
 [Permission("vortex.terraria.verifycharacter")]
 [DefaultCommand]
-public class VerifyCharacterCommand
+public static class VerifyCharacterCommand
 {
     [Main]
     public static async Task Execute(ServerCommandArgs args)
