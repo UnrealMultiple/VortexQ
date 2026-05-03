@@ -10,6 +10,7 @@ using Vortex.Bot.Core.Service;
 using Vortex.Bot.Database;
 using Vortex.Bot.Database.Models;
 using Vortex.Bot.Models;
+using Vortex.Bot.Command.Verification;
 using Vortex.Protocol.Packets;
 
 namespace Vortex.Bot.Command;
@@ -53,6 +54,41 @@ public abstract class CommandArgs(VortexContext context, List<string> @params, B
     public abstract Task ReplyWithAtAsync(string message);
 
     public string GetTextContent() => MessageChain == null ? string.Empty : string.Join("", MessageChain.OfType<TextEntity>().Select(t => t.Text));
+
+    public TypedVerificationManager.TypedVerification CreateVerification(
+        string actionType,
+        string actionName,
+        int timeoutSeconds = 60,
+        object? data = null,
+        string? verifyKey = null)
+    {
+        long groupId = this is GroupCommandArgs groupArgs ? groupArgs.GroupUin : 0;
+        return TypedVerificationManager.Create(SenderUin, groupId, actionType, actionName, timeoutSeconds, data, verifyKey);
+    }
+
+    public TypedVerificationManager.VerificationResult Verify(string actionType, string? verifyKey = null)
+    {
+        long groupId = this is GroupCommandArgs groupArgs ? groupArgs.GroupUin : 0;
+        return TypedVerificationManager.Verify(SenderUin, groupId, actionType, verifyKey);
+    }
+
+    public TypedVerificationManager.VerificationResult CancelVerification(string actionType)
+    {
+        long groupId = this is GroupCommandArgs groupArgs ? groupArgs.GroupUin : 0;
+        return TypedVerificationManager.Cancel(SenderUin, groupId, actionType);
+    }
+
+    public TypedVerificationManager.TypedVerification? GetPendingVerification(string actionType, string? verifyKey = null)
+    {
+        long groupId = this is GroupCommandArgs groupArgs ? groupArgs.GroupUin : 0;
+        return TypedVerificationManager.GetPending(SenderUin, groupId, actionType, verifyKey);
+    }
+
+    public Task StartVerificationTimeoutAsync(string actionType, Func<TypedVerificationManager.TypedVerification, Task> onTimeout, string? verifyKey = null)
+    {
+        long groupId = this is GroupCommandArgs groupArgs ? groupArgs.GroupUin : 0;
+        return TypedVerificationManager.StartTimeoutMonitorAsync(SenderUin, groupId, actionType, onTimeout, verifyKey);
+    }
 }
 
 public class GroupCommandArgs : CommandArgs

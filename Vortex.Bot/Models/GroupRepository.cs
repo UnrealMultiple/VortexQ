@@ -1,4 +1,4 @@
-﻿using Vortex.Bot.Database.Models;
+using Vortex.Bot.Database.Models;
 
 namespace Vortex.Bot.Models;
 
@@ -28,7 +28,7 @@ public static class GroupRepository
             LocalPermissions = PermissionSet.Parse(permissions),
             ParentName = parentName ?? DefaultGroup.Instance.Name
         };
-
+        
         Group.DataContext.Insert(group);
         return group;
     }

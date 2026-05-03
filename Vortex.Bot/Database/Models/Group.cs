@@ -10,11 +10,11 @@ public class Group
     [PrimaryKey]
     public string Name { get; set; } = string.Empty;
 
-    [Column("parent")]
+    [Column("Parent")]
     public string ParentName { get; set; } = string.Empty;
 
     [Column("Permission")]
-    private string PermissionString { get; set; } = string.Empty;
+    public string PermissionString { get; set; } = string.Empty;
 
     [NotColumn]
     private PermissionSet? _localPermissions;

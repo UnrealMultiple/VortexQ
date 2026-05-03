@@ -44,4 +44,9 @@ public sealed class DefaultGroup : Group
         GroupRepository.Create(DefaultGroupName, permissions, string.Empty);
 
     }
+
+    public new bool HasPermission(string permission)
+    {
+        return DefaultPermissions.Contains(permission);
+    }
 }
