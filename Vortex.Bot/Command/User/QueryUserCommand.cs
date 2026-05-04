@@ -17,6 +17,7 @@ public static class QueryUserCommand
     [Flexible]
     public static async Task Execute(GroupCommandArgs args, [Param("QQ号(可选)")] long? targetUserId = null)
     {
+        var currencyName = args.Context.Configuration.Miscellaneous.CurrencyName;
         long userId;
         var mention = args.MessageChain?.OfType<MentionEntity>().FirstOrDefault();
         if (mention != null)
@@ -50,7 +51,7 @@ public static class QueryUserCommand
             .AddItem("QQ", userId.ToString())
             .AddItem("昵称", target?.Nickname ?? "未知")
             .AddItem("权限组", account.Group.Name)
-            .AddItem("金币", (currency?.Num ?? 0).ToString())
+            .AddItem(currencyName, (currency?.Num ?? 0).ToString())
             .AddItem("连续签到", $"{sign?.Date ?? 0} 天");
 
         await args.ReplyImageAsync(builder.Build());

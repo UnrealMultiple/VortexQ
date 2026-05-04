@@ -1,3 +1,4 @@
+using LinqToDB;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Vortex.Bot.Attributes;
@@ -24,11 +25,9 @@ public static class OnlinePlayersCommand
         }
 
         var groupId = args.GroupUin;
-        var servers = groupId > 0
-            ? [.. serverManager.GetServersByGroup(groupId)]
-            : serverManager.GetAllServers().ToList();
+        var servers = serverManager.GetServersByGroup(groupId);
 
-        if (servers.Count == 0)
+        if (!servers.Any())
         {
             await args.ReplyWithAtAsync("此群未配置任何服务器!");
             return;

@@ -14,6 +14,7 @@ public static class SelfInfoCommand
     [Main]
     public static async Task ShowInfo(GroupCommandArgs args)
     {
+        var currencyName = args.Context.Configuration.Miscellaneous.CurrencyName;
         var currency = Currency.Query(args.SenderUin);
         var sign = Sign.Query(args.SenderUin);
 
@@ -25,7 +26,7 @@ public static class SelfInfoCommand
             .AddItem("QQ", args.SenderUin.ToString())
             .AddItem("昵称", args.SenderDisplayName ?? "未知")
             .AddItem("权限组", args.Group.Name)
-            .AddItem("金币", (currency?.Num ?? 0).ToString())
+            .AddItem(currencyName, (currency?.Num ?? 0).ToString())
             .AddItem("连续签到", $"{sign?.Date ?? 0} 天");
 
         var imageData = builder.Build();
@@ -35,6 +36,7 @@ public static class SelfInfoCommand
     [Main]
     public static async Task ShowInfo(PrivateCommandArgs args)
     {
+        var currencyName = args.Context.Configuration.Miscellaneous.CurrencyName;
         var currency = Currency.Query(args.SenderUin);
         var sign = Sign.Query(args.SenderUin);
 
@@ -46,7 +48,7 @@ public static class SelfInfoCommand
             .AddItem("QQ", args.SenderUin.ToString())
             .AddItem("昵称", args.FriendNickname ?? "未知")
             .AddItem("权限组", args.Group.Name)
-            .AddItem("金币", (currency?.Num ?? 0).ToString())
+            .AddItem(currencyName, (currency?.Num ?? 0).ToString())
             .AddItem("连续签到", $"{sign?.Date ?? 0} 天");
 
         var imageData = builder.Build();
