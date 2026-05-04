@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Core.Service;
+using Vortex.Bot.Database.Models;
 using Vortex.Bot.Utility.Images;
 
 namespace Vortex.Bot.Command.Terraria;
@@ -34,7 +35,9 @@ public static class InventoryCommand
         {
             try
             {
-                var builder = InventoryGenerateExtensions.FromPlayerData(result.PlayerData, server.Config.Name);
+                var user = TerrariaUser.GetUserByName(result.PlayerData.Username, server.Config.Name);
+                var avatarUin = user?.Id ?? args.SenderUin;
+                var builder = InventoryGenerateExtensions.FromPlayerData(result.PlayerData, server.Config.Name, avatarUin);
                 await args.ReplyImageAsync(builder.Build());
             }
             catch (Exception ex)
