@@ -1,253 +1,250 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
+using Vortex.Bot.Command;
 
 namespace Vortex.Bot.Plugins;
 
-public sealed partial class PluginManager : IDisposable
+public sealed class PluginManager : IAsyncDisposable
 {
     private readonly ILogger<PluginManager> _logger;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly VortexContext _vortexContext;
+    private readonly IServiceProvider _services;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly CommandManager _commands;
+    private readonly PluginLoader _loader;
+    private readonly ConcurrentDictionary<string, PluginHost> _hosts = new();
+    private readonly List<PluginLoadContext> _contexts = [];
     private readonly string _pluginsDirectory;
-    private readonly ConcurrentDictionary<string, PluginInfo> _plugins = new();
-    private readonly List<PluginLoadContext> _loadContexts = [];
     private bool _disposed;
-
-    public IReadOnlyCollection<PluginInfo> LoadedPlugins => _plugins.Values.ToList().AsReadOnly();
-    public string PluginsDirectory => _pluginsDirectory;
 
     public PluginManager(
         ILogger<PluginManager> logger,
-        IServiceProvider serviceProvider,
-        VortexContext vortexContext)
+        IServiceProvider services,
+        ILoggerFactory loggerFactory,
+        CommandManager commands)
     {
         _logger = logger;
-        _serviceProvider = serviceProvider;
-        _vortexContext = vortexContext;
-        _pluginsDirectory = Path.Combine(VortexContext.Path, "Plugins");
-        EnsurePluginsDirectory();
+        _services = services;
+        _loggerFactory = loggerFactory;
+        _commands = commands;
+        _loader = new PluginLoader(services, loggerFactory.CreateLogger<PluginLoader>());
+        _pluginsDirectory = Path.Combine(AppContext.BaseDirectory, "Plugins");
+
+        EnsureDirectory();
     }
 
-    private void EnsurePluginsDirectory()
+    public string PluginsDirectory => _pluginsDirectory;
+    public IReadOnlyCollection<PluginHost> LoadedPlugins => _hosts.Values.ToList().AsReadOnly();
+
+    public async Task LoadAllAsync(CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        _logger.LogLoadingAll(_pluginsDirectory);
+
         if (!Directory.Exists(_pluginsDirectory))
         {
-            Directory.CreateDirectory(_pluginsDirectory);
-            _logger.LogPluginsDirectoryCreated(_pluginsDirectory);
-        }
-    }
-
-    public void LoadAllPlugins()
-    {
-        _logger.LogLoadingPlugins();
-
-        var pluginDirs = Directory.GetDirectories(_pluginsDirectory);
-        var loadedPlugins = new List<(PluginInfo Info, int Order)>();
-
-        foreach (var pluginDir in pluginDirs)
-        {
-            try
-            {
-                var plugins = LoadPluginFromDirectory(pluginDir);
-                loadedPlugins.AddRange(plugins.Select(p => (p, p.Plugin.LoadOrder)));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogFailedToLoadPlugin(pluginDir, ex);
-            }
+            _logger.LogDirectoryMissing(_pluginsDirectory);
+            return;
         }
 
-        InitializePlugins(loadedPlugins);
-        _logger.LogPluginsLoaded(_plugins.Count);
-    }
-
-    private List<PluginInfo> LoadPluginFromDirectory(string pluginDirectory)
-    {
-        var dirName = Path.GetFileName(pluginDirectory);
-        _logger.LogLoadingPluginDirectory(dirName);
-
-        var loadContext = new PluginLoadContext(pluginDirectory, $"PluginContext_{dirName}_{Guid.NewGuid():N}");
-        _loadContexts.Add(loadContext);
-
-        loadContext.LoadAssemblies();
-
-        if (loadContext.LoadedAssemblies.Count == 0)
-        {
-            _logger.LogNoValidDllFiles(dirName);
-            return [];
-        }
-
-        var plugins = loadContext.CreatePluginInstances(_serviceProvider);
-        var result = new List<PluginInfo>();
-
-        foreach (var plugin in plugins)
-        {
-            if (_plugins.ContainsKey(plugin.Name))
-            {
-                _logger.LogPluginAlreadyExists(plugin.Name);
-                continue;
-            }
-
-            var pluginContext = new PluginContext(
-                _loggerFactory.CreateLogger(plugin.GetType()),
-                _vortexContext,
-                pluginDirectory
-            );
-
-            plugin.Context = pluginContext;
-            var pluginInfo = new PluginInfo(plugin, pluginDirectory, loadContext);
-            _plugins[plugin.Name] = pluginInfo;
-            result.Add(pluginInfo);
-
-            _logger.LogPluginLoaded(plugin.Name, plugin.Version.ToString(), plugin.Author);
-        }
-
-        return result;
-    }
-
-    private void InitializePlugins(List<(PluginInfo Info, int Order)> plugins)
-    {
-        var sortedPlugins = plugins
-            .OrderBy(static p => p.Order)
-            .Select(static p => p.Info)
+        var results = Directory.GetDirectories(_pluginsDirectory)
+            .Select(TryLoad)
+            .Where(r => r.Success && r.Plugin is not null && r.Info is not null)
+            .OrderBy(r => r.Info!.LoadOrder)
             .ToList();
 
-        foreach (var pluginInfo in sortedPlugins)
+        foreach (var result in results)
         {
             try
             {
-                if (pluginInfo.Plugin is PluginBase pluginBase)
-                    pluginBase.OnInitialize();
-                else
-                    pluginInfo.Plugin.Initialize();
-
-                pluginInfo.IsInitialized = true;
+                await InitializeHostAsync(result, cancellationToken);
             }
             catch (Exception ex)
             {
-                _logger.LogFailedToInitializePlugin(pluginInfo.Plugin.Name, ex);
+                _logger.LogInitFailed(result.Info!.Name, ex);
             }
         }
+
+        _logger.LogLoadCompleted(_hosts.Count);
     }
 
-    public bool UnloadPlugin(string pluginName)
+    public async Task<bool> UnloadAsync(string pluginName, CancellationToken cancellationToken = default)
     {
-        if (!_plugins.TryRemove(pluginName, out var pluginInfo))
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (!_hosts.TryRemove(pluginName, out var host))
         {
-            _logger.LogPluginNotFoundForUnload(pluginName);
+            _logger.LogNotLoaded(pluginName);
             return false;
         }
 
         try
         {
-            if (pluginInfo.Plugin is PluginBase pluginBase)
-                pluginBase.OnShutdown();
-            else
-                pluginInfo.Plugin.Shutdown();
-
-            pluginInfo.Plugin.Dispose();
-            _logger.LogPluginUnloaded(pluginName);
+            await host.DisposeAsync();
+            _logger.LogUnloaded(pluginName);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogErrorUnloadingPlugin(pluginName, ex);
+            _logger.LogUnloadFailed(pluginName, ex);
             return false;
         }
     }
 
-    public bool ReloadPlugin(string pluginName)
+    public async Task<bool> ReloadAsync(string pluginName, CancellationToken cancellationToken = default)
     {
-        if (!_plugins.TryGetValue(pluginName, out var pluginInfo))
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (!_hosts.TryGetValue(pluginName, out var host))
         {
-            _logger.LogPluginNotFoundForReload(pluginName);
+            _logger.LogNotFoundForReload(pluginName);
             return false;
         }
 
-        var pluginDir = pluginInfo.Directory;
-        UnloadPlugin(pluginName);
+        var directory = host.Info.Directory;
 
+        await UnloadAsync(pluginName, cancellationToken);
         CollectGarbage();
 
         try
         {
-            var plugins = LoadPluginFromDirectory(pluginDir);
-
-            if (_plugins.TryGetValue(pluginName, out var newPluginInfo) && !newPluginInfo.IsInitialized)
+            var result = _loader.Load(directory);
+            if (result.Success)
             {
-                if (newPluginInfo.Plugin is PluginBase newPluginBase)
-                    newPluginBase.OnInitialize();
-                else
-                    newPluginInfo.Plugin.Initialize();
-
-                newPluginInfo.IsInitialized = true;
+                await InitializeHostAsync(result, cancellationToken);
+                _logger.LogReloaded(pluginName);
+                return true;
             }
 
-            _logger.LogPluginReloaded(pluginName);
-            return true;
+            _logger.LogReloadFailed(pluginName, result.Error?.Message);
+            return false;
         }
         catch (Exception ex)
         {
-            _logger.LogFailedToReloadPlugin(pluginName, ex);
+            _logger.LogReloadException(pluginName, ex);
             return false;
         }
     }
 
-    public void ReloadAllPlugins()
+    public async Task ReloadAllAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogReloadingAllPlugins();
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
-        foreach (var pluginName in _plugins.Keys.ToList())
-            UnloadPlugin(pluginName);
+        _logger.LogReloadingAll();
 
-        foreach (var context in _loadContexts)
-            context.UnloadPlugins();
+        foreach (var pluginName in _hosts.Keys.ToList())
+        {
+            await UnloadAsync(pluginName, cancellationToken);
+        }
 
-        _loadContexts.Clear();
-        _plugins.Clear();
+        foreach (var context in _contexts)
+        {
+            context.Unload();
+        }
+        _contexts.Clear();
 
         CollectGarbage();
-        LoadAllPlugins();
-        _logger.LogAllPluginsReloaded();
+        await LoadAllAsync(cancellationToken);
+
+        _logger.LogAllReloaded();
+    }
+
+    public PluginHost? GetPlugin(string pluginName)
+    {
+        _hosts.TryGetValue(pluginName, out var host);
+        return host;
     }
 
     public PluginInfo? GetPluginInfo(string pluginName)
     {
-        _plugins.TryGetValue(pluginName, out var pluginInfo);
-        return pluginInfo;
+        return _hosts.TryGetValue(pluginName, out var host) ? host.Info : null;
     }
 
-    public bool IsPluginLoaded(string pluginName) => _plugins.ContainsKey(pluginName);
+    public bool IsLoaded(string pluginName) => _hosts.ContainsKey(pluginName);
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
 
-        _logger.LogUnloadingAllPlugins();
+        _logger.LogDisposing();
 
-        foreach (var pluginName in _plugins.Keys.ToList())
-            UnloadPlugin(pluginName);
-
-        foreach (var context in _loadContexts)
+        foreach (var pluginName in _hosts.Keys.ToList())
         {
             try
             {
-                context.UnloadPlugins();
+                await UnloadAsync(pluginName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogUnloadError(pluginName, ex);
+            }
+        }
+
+        foreach (var context in _contexts)
+        {
+            try
+            {
                 context.Unload();
             }
             catch (Exception ex)
             {
-                _logger.LogFailedToUnloadPluginContext(ex);
+                _logger.LogContextUnloadError(ex);
             }
         }
-
-        _loadContexts.Clear();
-        _plugins.Clear();
+        _contexts.Clear();
 
         _disposed = true;
-        GC.SuppressFinalize(this);
-        _logger.LogAllPluginsUnloaded();
+        _logger.LogDisposed();
+    }
+
+    private PluginLoadResult TryLoad(string directory)
+    {
+        try
+        {
+            var result = _loader.Load(directory);
+            if (!result.Success)
+            {
+                _logger.LogDirectoryLoadFailed(directory, result.Error?.Message);
+            }
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDirectoryLoadException(directory, ex);
+            return PluginLoadResult.Fail(directory, ex);
+        }
+    }
+
+    private async Task InitializeHostAsync(PluginLoadResult result, CancellationToken cancellationToken)
+    {
+        var plugin = result.Plugin!;
+        var info = result.Info!;
+
+        if (_hosts.ContainsKey(info.Name))
+        {
+            _logger.LogAlreadyLoaded(info.Name);
+            return;
+        }
+
+        var logger = _loggerFactory.CreateLogger(plugin.GetType());
+        var host = new PluginHost(plugin, info, _services, logger, _commands);
+
+        if (!_hosts.TryAdd(info.Name, host))
+        {
+            _logger.LogAddToRegistryFailed(info.Name);
+            return;
+        }
+
+        await host.InitializeAsync(cancellationToken);
+    }
+
+    private void EnsureDirectory()
+    {
+        if (!Directory.Exists(_pluginsDirectory))
+        {
+            Directory.CreateDirectory(_pluginsDirectory);
+            _logger.LogCreatedDirectory(_pluginsDirectory);
+        }
     }
 
     private static void CollectGarbage()
@@ -256,69 +253,4 @@ public sealed partial class PluginManager : IDisposable
         GC.WaitForPendingFinalizers();
         GC.Collect();
     }
-
-    private ILoggerFactory _loggerFactory => _serviceProvider.GetRequiredService<ILoggerFactory>();
-}
-
-public static partial class PluginManagerLoggerExtension
-{
-    [LoggerMessage(LogLevel.Information, "Created plugins directory: {Path}")]
-    public static partial void LogPluginsDirectoryCreated(this ILogger<PluginManager> logger, string path);
-
-    [LoggerMessage(LogLevel.Information, "Loading plugins...")]
-    public static partial void LogLoadingPlugins(this ILogger<PluginManager> logger);
-        
-    [LoggerMessage(LogLevel.Error, "Failed to load plugin: {Directory}")]
-    public static partial void LogFailedToLoadPlugin(this ILogger<PluginManager> logger, string directory, Exception ex);
-
-    [LoggerMessage(LogLevel.Debug, "Loading plugin directory: {Directory}")]
-    public static partial void LogLoadingPluginDirectory(this ILogger<PluginManager> logger, string directory);
-
-    [LoggerMessage(LogLevel.Warning, "No valid DLL files found in plugin directory: {Directory}")]
-    public static partial void LogNoValidDllFiles(this ILogger<PluginManager> logger, string directory);
-
-    [LoggerMessage(LogLevel.Warning, "Plugin {PluginName} already exists, skipping")]
-    public static partial void LogPluginAlreadyExists(this ILogger<PluginManager> logger, string pluginName);
-
-    [LoggerMessage(LogLevel.Information, "Plugin [{PluginName}] v{Version} by {Author} loaded")]
-    public static partial void LogPluginLoaded(this ILogger<PluginManager> logger, string pluginName, string version, string author);
-
-    [LoggerMessage(LogLevel.Error, "Failed to initialize plugin [{PluginName}]")]
-    public static partial void LogFailedToInitializePlugin(this ILogger<PluginManager> logger, string pluginName, Exception ex);
-
-    [LoggerMessage(LogLevel.Warning, "Plugin {PluginName} not found, cannot unload")]
-    public static partial void LogPluginNotFoundForUnload(this ILogger<PluginManager> logger, string pluginName);
-
-    [LoggerMessage(LogLevel.Information, "Plugin [{PluginName}] unloaded")]
-    public static partial void LogPluginUnloaded(this ILogger<PluginManager> logger, string pluginName);
-
-    [LoggerMessage(LogLevel.Error, "Error unloading plugin [{PluginName}]")]
-    public static partial void LogErrorUnloadingPlugin(this ILogger<PluginManager> logger, string pluginName, Exception ex);
-
-    [LoggerMessage(LogLevel.Warning, "Plugin {PluginName} not found, cannot reload")]
-    public static partial void LogPluginNotFoundForReload(this ILogger<PluginManager> logger, string pluginName);
-
-    [LoggerMessage(LogLevel.Information, "Plugin [{PluginName}] reloaded")]
-    public static partial void LogPluginReloaded(this ILogger<PluginManager> logger, string pluginName);
-
-    [LoggerMessage(LogLevel.Error, "Failed to reload plugin [{PluginName}]")]
-    public static partial void LogFailedToReloadPlugin(this ILogger<PluginManager> logger, string pluginName, Exception ex);
-
-    [LoggerMessage(LogLevel.Information, "Reloading all plugins...")]
-    public static partial void LogReloadingAllPlugins(this ILogger<PluginManager> logger);
-
-    [LoggerMessage(LogLevel.Information, "All plugins reloaded")]
-    public static partial void LogAllPluginsReloaded(this ILogger<PluginManager> logger);
-
-    [LoggerMessage(LogLevel.Information, "Unloading all plugins...")]
-    public static partial void LogUnloadingAllPlugins(this ILogger<PluginManager> logger);
-
-    [LoggerMessage(LogLevel.Error, "Failed to unload plugin context")]
-    public static partial void LogFailedToUnloadPluginContext(this ILogger<PluginManager> logger, Exception ex);
-
-    [LoggerMessage(LogLevel.Information, "All plugins unloaded")]
-    public static partial void LogAllPluginsUnloaded(this ILogger<PluginManager> logger);
-
-    [LoggerMessage(LogLevel.Information, "Plugin loading completed, loaded {Count} plugins")]
-    public static partial void LogPluginsLoaded(this ILogger<PluginManager> logger, int count);
 }

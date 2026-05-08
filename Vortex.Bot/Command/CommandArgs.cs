@@ -107,31 +107,31 @@ public class GroupCommandArgs : CommandArgs
         InitializeAccount();
     }
 
-    public override async Task ReplyAsync(string message)
+    public override async Task<BotMessage> ReplyAsync(string message)
     {
         var builder = new MessageBuilder();
         builder.Text(message);
-        await BotContext.SendGroupMessage(GroupUin, builder.Build());
+        return await BotContext.SendGroupMessage(GroupUin, builder.Build());
     }
 
-    public override async Task ReplyAsync(MessageChain chain)
+    public override async Task<BotMessage> ReplyAsync(MessageChain chain)
     {
-        await BotContext.SendGroupMessage(GroupUin, chain);
+        return await BotContext.SendGroupMessage(GroupUin, chain);
     }
 
-    public override async Task ReplyImageAsync(byte[] imageData)
+    public override async Task<BotMessage> ReplyImageAsync(byte[] imageData)
     {
         var builder = new MessageBuilder();
         builder.Image(imageData);
-        await BotContext.SendGroupMessage(GroupUin, builder.Build());
+        return await BotContext.SendGroupMessage(GroupUin, builder.Build());
     }
 
-    public override async Task ReplyWithAtAsync(string message)
+    public override async Task<BotMessage> ReplyWithAtAsync(string message)
     {
         var builder = new MessageBuilder();
         builder.Reply(Message!);
         builder.Text(message);
-        await ReplyAsync(builder.Build());
+        return await ReplyAsync(builder.Build());
     }
 }
 

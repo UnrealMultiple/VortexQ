@@ -1,89 +1,87 @@
-using Microsoft.Extensions.Logging;
 using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Vortex.Bot.Command;
 using Vortex.Bot.Configuration;
-using Vortex.Bot.Database;
 
 namespace Vortex.Bot.Plugins;
 
 public abstract class PluginBase : IPlugin
 {
     private bool _disposed;
-    private List<Type>? _configTypes;
 
     public virtual string Name => GetType().Name;
     public virtual string Author => "Unknown";
     public virtual string Description => string.Empty;
     public virtual Version Version => new(1, 0, 0);
     public virtual int LoadOrder => 100;
-    public Assembly Assembly => GetType().Assembly;
-    public PluginContext Context { get; set; } = null!;
 
-    protected ILogger Logger => Context.Logger;
-    protected VortexContext VortexContext => Context.VortexContext;
-    protected CommandManager CommandManager => VortexContext.CommandManager;
-    protected IDatabaseService Database => VortexContext.Database;
+    protected IServiceProvider Services { get; private set; } = null!;
+    protected ILogger Logger { get; private set; } = null!;
+    protected string PluginDirectory { get; private set; } = null!;
+    protected VortexContext Vortex { get; private set; } = null!;
 
-    public abstract void Initialize();
-    public abstract void Shutdown();
-
-    protected void RegisterCommands()
+    public async ValueTask InitializeAsync(IPluginContext context, CancellationToken cancellationToken = default)
     {
-        CommandManager.AutoRegister(Assembly);
-        Logger.LogInformation("Plugin [{PluginName}] registered commands from assembly", Name);
+        ThrowIfDisposed();
+
+        Services = context.Services;
+        Logger = context.Logger;
+        PluginDirectory = context.PluginDirectory;
+        Vortex = context.Vortex;
+
+        Logger.LogInitializing(Name, Version, Author);
+
+        await OnInitializeAsync(cancellationToken);
+        await AutoRegisterCommandsAsync();
+        await AutoLoadConfigsAsync();
+
+        Logger.LogInitialized(Name);
     }
 
-    protected void RegisterEventHandlers()
+    public async ValueTask ShutdownAsync(CancellationToken cancellationToken = default)
     {
+        ThrowIfDisposed();
+
+        Logger.LogShuttingDown(Name);
+        await OnShutdownAsync(cancellationToken);
+        Logger.LogShutDown(Name);
     }
 
-    protected void UnregisterEventHandlers()
+    protected abstract ValueTask OnInitializeAsync(CancellationToken cancellationToken);
+    protected abstract ValueTask OnShutdownAsync(CancellationToken cancellationToken);
+
+    protected virtual ValueTask AutoRegisterCommandsAsync()
     {
+        var commandManager = Services.GetRequiredService<CommandManager>();
+        commandManager.AutoRegister(GetType().Assembly);
+        Logger.LogCommandsAutoRegistered(Name);
+        return ValueTask.CompletedTask;
     }
 
-    private void LoadConfigs()
+    protected virtual ValueTask AutoLoadConfigsAsync()
     {
-        _configTypes = FindConfigTypes(Assembly);
+        var configTypes = ScanConfigTypes(GetType().Assembly);
 
-        foreach (var configType in _configTypes)
+        foreach (var type in configTypes)
         {
             try
             {
-                var loadMethod = configType.GetMethod("Load", BindingFlags.Public | BindingFlags.Static);
+                var loadMethod = type.GetMethod("Load", BindingFlags.Public | BindingFlags.Static);
                 var fileName = loadMethod?.Invoke(null, null) as string;
-                Logger.LogInformation("Plugin [{PluginName}] loaded config: {ConfigName}", Name, fileName ?? configType.Name);
+                Logger.LogConfigLoaded(Name, fileName ?? type.Name);
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Plugin [{PluginName}] failed to load config: {ConfigName}", Name, configType.Name);
+                Logger.LogConfigLoadFailed(Name, type.Name, ex);
             }
         }
+
+        return ValueTask.CompletedTask;
     }
 
-    private void UnloadConfigs()
+    private static IEnumerable<Type> ScanConfigTypes(Assembly assembly)
     {
-        if (_configTypes == null) return;
-
-        foreach (var configType in _configTypes)
-        {
-            try
-            {
-                var unloadMethod = configType.GetMethod("Unload", BindingFlags.Public | BindingFlags.Static);
-                unloadMethod?.Invoke(null, null);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Plugin [{PluginName}] failed to unload config: {ConfigName}", Name, configType.Name);
-            }
-        }
-        _configTypes = null;
-    }
-
-    private static List<Type> FindConfigTypes(Assembly assembly)
-    {
-        var configBaseType = typeof(JsonConfigBase<>);
-        var result = new List<Type>();
-
         foreach (var type in assembly.GetExportedTypes())
         {
             if (type.IsAbstract || type.IsInterface)
@@ -92,49 +90,35 @@ public abstract class PluginBase : IPlugin
             var baseType = type.BaseType;
             while (baseType != null)
             {
-                if (baseType.IsGenericType && baseType.GetGenericTypeDefinition() == configBaseType)
+                if (baseType.IsGenericType && baseType.GetGenericTypeDefinition() == typeof(JsonConfigBase<>))
                 {
-                    result.Add(type);
+                    yield return type;
                     break;
                 }
                 baseType = baseType.BaseType;
             }
         }
-
-        return result;
     }
 
-    internal void OnInitialize()
+    public async ValueTask DisposeAsync()
     {
-        Logger.LogInformation("Initializing plugin [{PluginName}] v{Version} by {Author}", Name, Version, Author);
-        Initialize();
-        RegisterCommands();
-        RegisterEventHandlers();
-        LoadConfigs();
-        Logger.LogInformation("Plugin [{PluginName}] initialized", Name);
-    }
+        if (_disposed) return;
 
-    internal void OnShutdown()
-    {
-        Logger.LogInformation("Shutting down plugin [{PluginName}]", Name);
-        UnregisterEventHandlers();
-        UnloadConfigs();
-        Shutdown();
-        Logger.LogInformation("Plugin [{PluginName}] shut down", Name);
-    }
-
-    public void Dispose()
-    {
-        if (!_disposed)
+        try
         {
-            OnShutdown();
-            _disposed = true;
-            GC.SuppressFinalize(this);
+            await ShutdownAsync();
         }
+        catch (Exception ex)
+        {
+            Logger?.LogDisposalError(Name, ex);
+        }
+
+        _disposed = true;
+        GC.SuppressFinalize(this);
     }
 
-    ~PluginBase()
+    private void ThrowIfDisposed()
     {
-        Dispose();
+        ObjectDisposedException.ThrowIf(_disposed, GetType().Name);
     }
 }

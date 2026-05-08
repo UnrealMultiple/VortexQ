@@ -1,130 +1,97 @@
 using System.Reflection;
 using System.Runtime.Loader;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Vortex.Bot.Plugins;
 
-public class PluginLoadContext(string pluginDirectory, string contextName) : AssemblyLoadContext(contextName, isCollectible: true)
+public sealed class PluginLoadContext(string pluginDirectory) : AssemblyLoadContext(isCollectible: true)
 {
-    private readonly AssemblyDependencyResolver _resolver = new AssemblyDependencyResolver(pluginDirectory);
-    private readonly List<Assembly> _loadedAssemblies = [];
-    private readonly List<IPlugin> _loadedPlugins = [];
-    private readonly string _pluginDirectory = pluginDirectory;
+    private readonly AssemblyDependencyResolver _resolver = new(pluginDirectory);
+    private readonly List<Assembly> _assemblies = [];
 
-    public IReadOnlyList<Assembly> LoadedAssemblies => _loadedAssemblies;
-    public IReadOnlyList<IPlugin> LoadedPlugins => _loadedPlugins;
-    public string PluginDirectory => _pluginDirectory;
-    public string ContextName { get; } = contextName;
+    public string PluginDirectory { get; } = pluginDirectory;
+    public IReadOnlyList<Assembly> LoadedAssemblies => _assemblies;
 
-    public void LoadAssemblies()
+    public IReadOnlyList<Assembly> LoadAssemblies()
     {
-        if (!Directory.Exists(_pluginDirectory))
+        if (!Directory.Exists(PluginDirectory))
         {
-            Directory.CreateDirectory(_pluginDirectory);
-            return;
+            Directory.CreateDirectory(PluginDirectory);
+            return _assemblies;
         }
 
-        var dllFiles = Directory.GetFiles(_pluginDirectory, "*.dll", SearchOption.AllDirectories);
-
-        foreach (var dllPath in dllFiles)
+        foreach (var dll in Directory.GetFiles(PluginDirectory, "*.dll", SearchOption.AllDirectories))
         {
             try
             {
-                var assembly = LoadFromAssemblyPath(dllPath);
-                if (!_loadedAssemblies.Contains(assembly))
-                {
-                    _loadedAssemblies.Add(assembly);
-                }
+                var assembly = LoadFromAssemblyPath(dll);
+                if (!_assemblies.Contains(assembly))
+                    _assemblies.Add(assembly);
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[PluginLoadContext] Failed to load assembly: {dllPath}, Error: {ex.Message}");
-            }
+            catch { /* ignore unloadable assemblies */ }
         }
+
+        return _assemblies;
     }
 
-    public List<IPlugin> CreatePluginInstances(IServiceProvider serviceProvider)
+    public IReadOnlyList<IPlugin> ResolvePlugins(IServiceProvider services)
     {
         var plugins = new List<IPlugin>();
 
-        foreach (var assembly in _loadedAssemblies)
+        foreach (var assembly in _assemblies)
         {
             try
             {
-                var pluginTypes = assembly.GetExportedTypes()
-                    .Where(t => typeof(IPlugin).IsAssignableFrom(t)
-                                && !t.IsAbstract
-                                && !t.IsInterface);
+                var types = assembly.GetExportedTypes()
+                    .Where(t => typeof(IPlugin).IsAssignableFrom(t) && !t.IsAbstract && !t.IsInterface);
 
-                foreach (var type in pluginTypes)
+                foreach (var type in types)
                 {
                     try
                     {
-                        var plugin = serviceProvider.GetService(type) is IPlugin fromService ? fromService : Activator.CreateInstance(type) as IPlugin;
-                        if (plugin != null)
-                        {
+                        var plugin = Instantiate(type, services);
+                        if (plugin is not null)
                             plugins.Add(plugin);
-                        }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[PluginLoadContext] Failed to create plugin instance: {type.FullName}, Error: {ex.Message}");
+                        Console.WriteLine($"[Plugin] Failed to instantiate {type.FullName}: {ex.Message}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[PluginLoadContext] Failed to scan assembly: {assembly.FullName}, Error: {ex.Message}");
+                Console.WriteLine($"[Plugin] Failed to scan assembly {assembly.FullName}: {ex.Message}");
             }
         }
 
-        _loadedPlugins.AddRange(plugins);
         return plugins;
+    }
+
+    private static IPlugin? Instantiate(Type type, IServiceProvider services)
+    {
+        var existing = services.GetService(type) as IPlugin;
+        if (existing is not null) return existing;
+
+        try
+        {
+            return ActivatorUtilities.CreateInstance(services, type) as IPlugin;
+        }
+        catch
+        {
+            return Activator.CreateInstance(type) as IPlugin;
+        }
     }
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
-        foreach (var assembly in _loadedAssemblies)
-        {
-            if (assembly.FullName == assemblyName.FullName)
-            {
-                return assembly;
-            }
-        }
-
-        var assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
-        return assemblyPath != null ? LoadFromAssemblyPath(assemblyPath) : Default.LoadFromAssemblyName(assemblyName);
+        var path = _resolver.ResolveAssemblyToPath(assemblyName);
+        return path is not null ? LoadFromAssemblyPath(path) : Default.LoadFromAssemblyName(assemblyName);
     }
 
     protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
     {
-        var libraryPath = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
-        return libraryPath != null ? LoadUnmanagedDllFromPath(libraryPath) : nint.Zero;
+        var path = _resolver.ResolveUnmanagedDllToPath(unmanagedDllName);
+        return path is not null ? LoadUnmanagedDllFromPath(path) : IntPtr.Zero;
     }
-
-    public void UnloadPlugins()
-    {
-        foreach (var plugin in _loadedPlugins)
-        {
-            try
-            {
-                plugin.Dispose();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[PluginLoadContext] Failed to unload plugin: {plugin.Name}, Error: {ex.Message}");
-            }
-        }
-
-        _loadedPlugins.Clear();
-        _loadedAssemblies.Clear();
-    }
-}
-
-public class PluginInfo(IPlugin plugin, string directory, PluginLoadContext loadContext)
-{
-    public IPlugin Plugin { get; } = plugin;
-    public string Directory { get; } = directory;
-    public PluginLoadContext LoadContext { get; } = loadContext;
-    public DateTime LoadTime { get; } = DateTime.Now;
-    public bool IsInitialized { get; set; }
 }

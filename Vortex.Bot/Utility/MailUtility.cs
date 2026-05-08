@@ -4,29 +4,20 @@ using System.Text;
 
 namespace Vortex.Bot.Utility;
 
-public class MailUtility : IDisposable
+public class MailUtility(string host, int port, string password, bool enableSsl) : IDisposable
 {
-    public string Host { get; }
-    public int Port { get; }
-    public string Password { get; }
-    public bool EnableSsl { get; }
+    public string Host { get; } = host;
+    public int Port { get; } = port;
+    public string Password { get; } = password;
+    public bool EnableSsl { get; } = enableSsl;
     public string Username { get; private set; } = "";
 
-    private readonly SmtpClient _client;
+    private readonly SmtpClient _client = new SmtpClient();
     private readonly MimeMessage _mail = new();
     private string _subject = "";
     private string _body = "";
     private bool _isHtml = false;
     private readonly List<string> _attachments = [];
-
-    public MailUtility(string host, int port, string password, bool enableSsl)
-    {
-        Host = host;
-        Port = port;
-        Password = password;
-        EnableSsl = enableSsl;
-        _client = new SmtpClient();
-    }
 
     public static MailUtility Builder(string host, int port, string password, bool enableSsl) => new(host, port, password, enableSsl);
 

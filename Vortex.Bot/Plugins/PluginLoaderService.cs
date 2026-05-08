@@ -3,52 +3,41 @@ using Microsoft.Extensions.Logging;
 
 namespace Vortex.Bot.Plugins;
 
-public partial class PluginLoaderService(ILogger<PluginLoaderService> logger, PluginManager pluginManager) : IHostedService
+public sealed class PluginLoaderService(ILogger<PluginLoaderService> logger, PluginManager manager) : IHostedService, IAsyncDisposable
 {
     private readonly ILogger<PluginLoaderService> _logger = logger;
-    private readonly PluginManager _pluginManager = pluginManager;
+    private readonly PluginManager _manager = manager;
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInitializingPluginSystem();
+        _logger.LogStarting();
 
         try
         {
-            _pluginManager.LoadAllPlugins();
+            await _manager.LoadAllAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogErrorLoadingPlugins(ex.Message);
+            _logger.LogStartupFailed(ex);
         }
-
-        return Task.CompletedTask;
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogStoppingPluginSystem();
+        _logger.LogStopping();
 
         try
         {
-            _pluginManager.Dispose();
+            await _manager.DisposeAsync();
         }
         catch (Exception ex)
         {
-            _logger.LogErrorUnloadingPlugins(ex.Message);
+            _logger.LogShutdownError(ex);
         }
-
-        return Task.CompletedTask;
     }
-}
 
-public static partial class PluginLoaderServiceLoggerExtension
-{
-    [LoggerMessage(LogLevel.Information, "Initializing plugin system...")]
-    public static partial void LogInitializingPluginSystem(this ILogger<PluginLoaderService> logger);
-    [LoggerMessage(LogLevel.Error, "An error occurred while loading plugins: {message}")]
-    public static partial void LogErrorLoadingPlugins(this ILogger<PluginLoaderService> logger, string message);
-    [LoggerMessage(LogLevel.Information, "Stopping plugin system...")]
-    public static partial void LogStoppingPluginSystem(this ILogger<PluginLoaderService> logger);
-    [LoggerMessage(LogLevel.Error, "An error occurred while unloading plugins: {message}")]
-    public static partial void LogErrorUnloadingPlugins(this ILogger<PluginLoaderService> logger, string message);
+    public async ValueTask DisposeAsync()
+    {
+        await _manager.DisposeAsync();
+    }
 }
