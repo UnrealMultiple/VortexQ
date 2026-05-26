@@ -48,8 +48,8 @@ public class Config
 
     public static void Reload(ReloadEventArgs e)
     {
-        Plugin.RemoveAssemblyCommands(Assembly.GetExecutingAssembly());
+        Plugin.RemoveAssemblyCommands(Assembly.GetExecutingAssembly(), _instance?.SocketConfig.EmptyCommand);
         _instance = Read();
-        Instance.SocketConfig.EmptyCommand.ForEach(x => Commands.ChatCommands.Add(new("", (_) => { }, x)));
+        Plugin.RegisterEmptyCommands(Instance.SocketConfig.EmptyCommand);
     }
 }
