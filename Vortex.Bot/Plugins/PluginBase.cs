@@ -20,6 +20,7 @@ public abstract class PluginBase : IPlugin
     protected ILogger Logger { get; private set; } = null!;
     protected string PluginDirectory { get; private set; } = null!;
     protected VortexContext Vortex { get; private set; } = null!;
+    public PluginContext Context { get; private set; } = null!;
 
     public async ValueTask InitializeAsync(IPluginContext context, CancellationToken cancellationToken = default)
     {
@@ -29,6 +30,7 @@ public abstract class PluginBase : IPlugin
         Logger = context.Logger;
         PluginDirectory = context.PluginDirectory;
         Vortex = context.Vortex;
+        Context = new PluginContext(Services, Logger, PluginDirectory, Vortex);
 
         Logger.LogInitializing(Name, Version, Author);
 
@@ -48,8 +50,25 @@ public abstract class PluginBase : IPlugin
         Logger.LogShutDown(Name);
     }
 
-    protected abstract ValueTask OnInitializeAsync(CancellationToken cancellationToken);
-    protected abstract ValueTask OnShutdownAsync(CancellationToken cancellationToken);
+    public virtual void Initialize()
+    {
+    }
+
+    public virtual void Shutdown()
+    {
+    }
+
+    protected virtual ValueTask OnInitializeAsync(CancellationToken cancellationToken)
+    {
+        Initialize();
+        return ValueTask.CompletedTask;
+    }
+
+    protected virtual ValueTask OnShutdownAsync(CancellationToken cancellationToken)
+    {
+        Shutdown();
+        return ValueTask.CompletedTask;
+    }
 
     protected virtual ValueTask AutoRegisterCommandsAsync()
     {

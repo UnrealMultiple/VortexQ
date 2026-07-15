@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Reflection;
+using System.Text;
 using Vortex.Bot.Command;
 using Vortex.Bot.Configuration;
 using Vortex.Bot.Extension;
@@ -65,14 +66,35 @@ public class CoreLoginService(ILogger<CoreLoginService> logger, IOptions<CoreCon
 
     private async Task CommandGroupAdapter(BotContext ctx, BotMessageEvent e)
     {
-        var text = e.Message.Entities.GetEnitys<TextEntity>().ToJoinedString(x => x.Text, "");
+        var text = GetCommandText(e);
         await _cmd.ExecuteGroupAsync(text, e, _vortexContext);
     }
 
     private async Task CommandPrivateAdapter(BotContext ctx, BotMessageEvent e)
     {
-        var text = e.Message.Entities.GetEnitys<TextEntity>().ToJoinedString(x => x.Text, "");
+        var text = GetCommandText(e);
         await _cmd.ExecutePrivateAsync(text, e, _vortexContext);
+    }
+
+    private static string GetCommandText(BotMessageEvent e)
+    {
+        var builder = new StringBuilder();
+
+        foreach (var entity in e.Message.Entities)
+        {
+            switch (entity)
+            {
+                case TextEntity text:
+                    builder.Append(text.Text);
+                    break;
+                case MentionEntity mention:
+                    // Mentions have no text content, so preserve their argument position with the target UIN.
+                    builder.Append(' ').Append(mention.Uin).Append(' ');
+                    break;
+            }
+        }
+
+        return builder.ToString();
     }
 
     private void HandleNewDeviceVerify(BotContext _, BotNewDeviceVerifyEvent @event)

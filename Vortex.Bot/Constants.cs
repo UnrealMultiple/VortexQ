@@ -18,10 +18,22 @@ internal static class Constants
 
     public static string ImplementationName = "Vortex.Bot";
 
-    public static string ImplementationVersion = typeof(Constants).Assembly
-        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-        ?.InformationalVersion?[6..]
-        ?? "Unknown";
+    public static string ImplementationVersion = GetImplementationVersion();
 
     public static string Version = "1.0";
+
+    private static string GetImplementationVersion()
+    {
+        var version = typeof(Constants).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+
+        if (string.IsNullOrWhiteSpace(version))
+            return "Unknown";
+
+        var metadataIndex = version.IndexOf('+');
+        return metadataIndex >= 0 && metadataIndex < version.Length - 1
+            ? version[(metadataIndex + 1)..]
+            : version;
+    }
 }

@@ -53,10 +53,16 @@ public class Currency
             throw new ArgumentException("扣除数量必须大于0", nameof(amount));
         }
 
-        var currency = Query(userId) ?? throw new InvalidOperationException("用户没有货币记录，无法扣除！");
-        if (currency.Num < amount)
+        var currency = Query(userId);
+        if (currency == null)
         {
-            throw new InvalidOperationException($"余额不足！当前余额: {currency.Num}，需要: {amount}");
+            currency = new Currency
+            {
+                UserId = userId,
+                Num = -amount
+            };
+            RecordBase.GetContext<Currency>("Currency").Insert(currency);
+            return currency;
         }
 
         currency.Num -= amount;
@@ -67,11 +73,6 @@ public class Currency
 
     public static Currency Set(long userId, long amount)
     {
-        if (amount < 0)
-        {
-            throw new ArgumentException("数量不能为负数", nameof(amount));
-        }
-
         var currency = Query(userId);
         if (currency == null)
         {

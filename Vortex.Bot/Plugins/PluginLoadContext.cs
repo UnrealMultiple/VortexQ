@@ -6,6 +6,12 @@ namespace Vortex.Bot.Plugins;
 
 public sealed class PluginLoadContext(string pluginDirectory) : AssemblyLoadContext(isCollectible: true)
 {
+    private static readonly HashSet<string> HostAssemblyNames =
+    [
+        typeof(IPlugin).Assembly.GetName().Name!,
+        typeof(Vortex.Protocol.Models.Player).Assembly.GetName().Name!
+    ];
+
     private readonly AssemblyDependencyResolver _resolver = new(pluginDirectory);
     private readonly List<Assembly> _assemblies = [];
 
@@ -24,6 +30,9 @@ public sealed class PluginLoadContext(string pluginDirectory) : AssemblyLoadCont
         {
             try
             {
+                if (HostAssemblyNames.Contains(AssemblyName.GetAssemblyName(dll).Name!))
+                    continue;
+
                 var assembly = LoadFromAssemblyPath(dll);
                 if (!_assemblies.Contains(assembly))
                     _assemblies.Add(assembly);
@@ -85,6 +94,9 @@ public sealed class PluginLoadContext(string pluginDirectory) : AssemblyLoadCont
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
+        if (assemblyName.Name is not null && HostAssemblyNames.Contains(assemblyName.Name))
+            return Default.LoadFromAssemblyName(assemblyName);
+
         var path = _resolver.ResolveAssemblyToPath(assemblyName);
         return path is not null ? LoadFromAssemblyPath(path) : Default.LoadFromAssemblyName(assemblyName);
     }

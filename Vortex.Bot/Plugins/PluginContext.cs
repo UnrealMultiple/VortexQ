@@ -7,4 +7,7 @@ public sealed record PluginContext(
     ILogger Logger,
     string PluginDirectory,
     VortexContext Vortex
-) : IPluginContext;
+) : IPluginContext
+{
+    public VortexContext VortexContext => Vortex;
+}

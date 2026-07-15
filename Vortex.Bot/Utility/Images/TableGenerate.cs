@@ -12,6 +12,7 @@ public struct TableCell
     public Color BackgroundColor { get; set; } = Color.White;
     public bool UseTextColor { get; set; }
     public bool UseBackgroundColor { get; set; }
+    public FontStyle FontStyle { get; set; } = FontStyle.Regular;
 
     public TableCell(string text, Color textColor, Color backgroundColor)
     {
@@ -26,6 +27,14 @@ public struct TableCell
     {
         Text = text;
         TextColor = textColor;
+        UseTextColor = true;
+    }
+
+    public TableCell(string text, Color textColor, FontStyle fontStyle)
+    {
+        Text = text;
+        TextColor = textColor;
+        FontStyle = fontStyle;
         UseTextColor = true;
     }
 
@@ -242,7 +251,16 @@ public class TableGenerate : ImageGeneratorBase, IImageGenerator<TableBuilder>
         {
             for (var j = 0; j < _currentBuilder.Rows[i].Content.Count; j++)
             {
-                var size = TextMeasurer.MeasureSize(_currentBuilder.Rows[i].Content[j].Text, textOption);
+                var cell = _currentBuilder.Rows[i].Content[j];
+                var cellFont = CreateFont(Config.FontSize, cell.FontStyle);
+                var cellTextSize = MeasureText("A", cellFont);
+                var cellTextOption = new RichTextOptions(cellFont)
+                {
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    WrappingLength = cellTextSize.Width * Config.LineMaxTextLength,
+                    WordBreaking = WordBreaking.BreakAll
+                };
+                var size = TextMeasurer.MeasureSize(cell.Text, cellTextOption);
                 rowHeights[i + 1] = Math.Max(rowHeights[i + 1], (int)size.Height);
                 columnWidths[j] = Math.Max(columnWidths[j], (int)size.Width);
             }
@@ -299,11 +317,13 @@ public class TableGenerate : ImageGeneratorBase, IImageGenerator<TableBuilder>
             if (cell.UseBackgroundColor)
                 ctx.Fill(cell.BackgroundColor, cellRect);
 
-            var textOption = new RichTextOptions(tableFont)
+            var cellFont = CreateFont(Config.FontSize, cell.FontStyle);
+            var cellTextSize = MeasureText("A", cellFont);
+            var textOption = new RichTextOptions(cellFont)
             {
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
-                WrappingLength = textSize.Width * Config.LineMaxTextLength,
+                WrappingLength = cellTextSize.Width * Config.LineMaxTextLength,
                 WordBreaking = WordBreaking.BreakAll,
                 Origin = new PointF(xOffset + (_columnWidths[j] / 2) + Gap, CardTopMargin + TableTopMargin + (_rowHeights[0] / 2) + Gap)
             };
@@ -330,11 +350,13 @@ public class TableGenerate : ImageGeneratorBase, IImageGenerator<TableBuilder>
                     ctx.Fill(cell.BackgroundColor, cellRect);
 
                 var textY = yOffset + (_rowHeights[i + 1] / 2) + Gap;
-                var textOption = new RichTextOptions(tableFont)
+                var cellFont = CreateFont(Config.FontSize, cell.FontStyle);
+                var cellTextSize = MeasureText("A", cellFont);
+                var textOption = new RichTextOptions(cellFont)
                 {
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
-                    WrappingLength = textSize.Width * Config.LineMaxTextLength,
+                    WrappingLength = cellTextSize.Width * Config.LineMaxTextLength,
                     WordBreaking = WordBreaking.BreakAll,
                     Origin = new PointF(xOffset + (_columnWidths[j] / 2) + Gap, textY)
                 };
