@@ -8,23 +8,45 @@ public sealed class GiveItemHandler(Net.VortexClient client) : RequestHandlerBas
 {
     public override GiveItemPacketResponse Handle(GiveItemPacket request)
     {
-        if (request.ItemId <= 0 || request.Stack <= 0)
-            return CreateFailureResponse(request, "物品 ID 或数量无效。");
+        if (string.IsNullOrWhiteSpace(request.PlayerName))
+            return CreateFailureResponse(request, "玩家名称不能为空");
 
-        var players = TSPlayer.FindByNameOrID($"tsn:{request.PlayerName}")
-            .Where(static player => player.Active)
-            .ToArray();
-        if (players.Length == 0)
-            return CreateFailureResponse(request, "目标玩家不在线。");
-        if (players.Length > 1)
-            return CreateFailureResponse(request, "找到多个同名玩家，无法发放物品。");
+        if (request.MessageOnly)
+        {
+            var player = request.PlayerIndex >= 0
+                ? TShock.Players.ElementAtOrDefault(request.PlayerIndex)
+                : null;
+
+            if (player?.Active != true)
+            {
+                player = TShock.Players.FirstOrDefault(candidate =>
+                    candidate?.Active == true
+                    && string.Equals(candidate.Name, request.PlayerName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (player == null)
+                return CreateFailureResponse(request, "目标玩家不在线");
+
+            var color = request.Color.Length >= 3 ? request.Color : [255, 255, 255];
+            player.SendMessage(request.Notification, color[0], color[1], color[2]);
+            return CreateSuccessResponse(request, "消息发送成功");
+        }
+
+        if (request.ItemId <= 0 || request.Quantity <= 0)
+            return CreateFailureResponse(request, "物品 ID 和数量必须大于 0");
 
         try
         {
-            var success = players[0].GiveItemCheck(request.ItemId, request.ItemName, request.Stack, 0);
-            return success
-                ? CreateSuccessResponse(request, "物品发放成功。")
-                : CreateFailureResponse(request, "物品被服务器规则拒绝。");
+            var player = TShock.Players.FirstOrDefault(candidate =>
+                candidate?.Active == true
+                && string.Equals(candidate.Name, request.PlayerName, StringComparison.Ordinal));
+            if (player == null)
+                return CreateFailureResponse(request, "目标玩家不在线");
+
+            if (!player.GiveItemCheck(request.ItemId, request.ItemId.ToString(), request.Quantity, request.Prefix))
+                return CreateFailureResponse(request, "服务器拒绝发放该物品");
+
+            return CreateSuccessResponse(request, "物品发放成功");
         }
         catch (Exception ex)
         {

@@ -97,10 +97,6 @@ public static class HostApplicationBuilderExtension
                     ? ActivatorUtilities.CreateInstance<OnlineCaptchaResolver>(services)
                     : ActivatorUtilities.CreateInstance<ManualCaptchaResolver>(services);
             })
-            .AddSingleton<PluginCommandRegistry>()
-            .AddSingleton<PluginCurrencyService>()
-            .AddSingleton<PluginTerrariaService>()
-            .AddSingleton<PluginImageService>()
             .AddSingleton<CommandManager>()
 
             // Database

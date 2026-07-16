@@ -10,7 +10,6 @@ internal abstract class CommandBase
     protected string[] Permissions { get; init; }
     protected string? Info { get; set; }
     public string? HelpText { get; init; }
-    internal IReadOnlyList<string> RequiredPermissions => Permissions;
 
     public abstract Task<ParseResult> TryParseAsync(CommandArgs args, int current, string commandName);
 

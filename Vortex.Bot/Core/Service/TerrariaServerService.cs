@@ -136,30 +136,6 @@ public partial class TerrariaServerService
         return await _vortexServer.RequestAsync<ServerOnlinePacket, ServerOnlinePacketResponse>(clientId.Value, request, timeoutMs);
     }
 
-    public async Task<OnlineRankPacketResponse?> GetOnlineRankAsync(string serverName, int timeoutMs = 5000)
-    {
-        if (!TryGetServer(serverName, out var server) || server == null)
-            return null;
-
-        var clientId = server.GetOnlineClientId();
-        if (clientId == null)
-            return null;
-
-        return await _vortexServer.RequestAsync<OnlineRankPacket, OnlineRankPacketResponse>(clientId.Value, new OnlineRankPacket(), timeoutMs);
-    }
-
-    public async Task<DeathRankPacketResponse?> GetDeathRankAsync(string serverName, int timeoutMs = 5000)
-    {
-        if (!TryGetServer(serverName, out var server) || server == null)
-            return null;
-
-        var clientId = server.GetOnlineClientId();
-        if (clientId == null)
-            return null;
-
-        return await _vortexServer.RequestAsync<DeathRankPacket, DeathRankPacketResponse>(clientId.Value, new DeathRankPacket(), timeoutMs);
-    }
-
     public async Task<ExecuteCommandPacketResponse?> ExecuteCommandAsync(string serverName, string command, int timeoutMs = 10000)
     {
         if (!TryGetServer(serverName, out var server) || server == null)
@@ -173,7 +149,7 @@ public partial class TerrariaServerService
         return await _vortexServer.RequestAsync<ExecuteCommandPacket, ExecuteCommandPacketResponse>(clientId.Value, request, timeoutMs);
     }
 
-    public async Task<GiveItemPacketResponse?> GiveItemAsync(string serverName, string playerName, int itemId, string itemName, int stack, int timeoutMs = 10000)
+    public async Task<GiveItemPacketResponse?> GiveItemAsync(string serverName, string playerName, int itemId, int quantity, int prefix = 0, int timeoutMs = 10000)
     {
         if (!TryGetServer(serverName, out var server) || server == null)
             return null;
@@ -186,8 +162,27 @@ public partial class TerrariaServerService
         {
             PlayerName = playerName,
             ItemId = itemId,
-            ItemName = itemName,
-            Stack = stack
+            Quantity = quantity,
+            Prefix = prefix
+        };
+        return await _vortexServer.RequestAsync<GiveItemPacket, GiveItemPacketResponse>(clientId.Value, request, timeoutMs);
+    }
+
+    public async Task<GiveItemPacketResponse?> SendPlayerMessageAsync(string serverName, string playerName, int playerIndex, string message, int timeoutMs = 10000)
+    {
+        if (!TryGetServer(serverName, out var server) || server == null)
+            return null;
+
+        var clientId = server.GetOnlineClientId();
+        if (clientId == null)
+            return null;
+
+        var request = new GiveItemPacket
+        {
+            PlayerName = playerName,
+            PlayerIndex = playerIndex,
+            MessageOnly = true,
+            Notification = message
         };
         return await _vortexServer.RequestAsync<GiveItemPacket, GiveItemPacketResponse>(clientId.Value, request, timeoutMs);
     }

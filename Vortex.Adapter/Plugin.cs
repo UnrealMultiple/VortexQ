@@ -4,6 +4,7 @@ using Vortex.Adapter.Setting;
 using Vortex.Protocol.Models;
 using Vortex.Protocol.Packets;
 using System.Reflection;
+using System.Collections.Concurrent;
 using System.Threading.Channels;
 using System.Timers;
 using Terraria;
@@ -26,6 +27,7 @@ public class Plugin : TerrariaPlugin
     internal static readonly List<TSPlayer> ServerPlayers = new();
     internal static Channel<int> Channeler = Channel.CreateBounded<int>(1);
     internal static readonly Dictionary<int, KillNpc> DamageBoss = [];
+    internal static readonly ConcurrentQueue<PrivateMessagePacket> PendingPrivateMessages = new();
 
     private long _timerCount = 0;
     private readonly System.Timers.Timer _timer = new();
@@ -355,6 +357,29 @@ public class Plugin : TerrariaPlugin
 
     private void OnUpdate(EventArgs args)
     {
+        while (PendingPrivateMessages.TryDequeue(out var request))
+        {
+            var player = request.PlayerIndex >= 0
+                ? TShock.Players.ElementAtOrDefault(request.PlayerIndex)
+                : null;
+
+            if (player?.Active != true)
+            {
+                player = TShock.Players.FirstOrDefault(candidate =>
+                    candidate?.Active == true
+                    && string.Equals(candidate.Name, request.Name, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (player == null)
+            {
+                TShock.Log.ConsoleWarn($"[Vortex.Adapter] 无法向玩家 {request.Name} 发送消息");
+                continue;
+            }
+
+            var color = request.Color.Length >= 3 ? request.Color : [255, 255, 255];
+            player.SendMessage(request.Text, color[0], color[1], color[2]);
+        }
+
         _timerCount++;
         if (_timerCount % 60 == 0)
         {

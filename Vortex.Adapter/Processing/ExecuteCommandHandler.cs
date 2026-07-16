@@ -9,26 +9,13 @@ public class ExecuteCommandHandler(Net.VortexClient client) : RequestHandlerBase
     public override ExecuteCommandPacketResponse Handle(ExecuteCommandPacket request)
     {
         var player = new OneBotPlayer("VortexBot");
-        try
+        Commands.HandleCommand(player, request.Text);
+        return new ExecuteCommandPacketResponse
         {
-            var success = Commands.HandleCommand(player, request.Text) && !player.HasCommandError;
-            return new ExecuteCommandPacketResponse
-            {
-                RequestId = request.RequestId,
-                Success = success,
-                Message = success ? "执行成功" : string.Join("\n", player.CommandOutput),
-                Params = player.CommandOutput
-            };
-        }
-        catch (Exception ex)
-        {
-            return new ExecuteCommandPacketResponse
-            {
-                RequestId = request.RequestId,
-                Success = false,
-                Message = ex.Message,
-                Params = player.CommandOutput
-            };
-        }
+            RequestId = request.RequestId,
+            Success = true,
+            Message = "执行成功",
+            Params = player.CommandOutput
+        };
     }
 }

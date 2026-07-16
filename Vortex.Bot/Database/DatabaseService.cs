@@ -7,6 +7,7 @@ namespace Vortex.Bot.Database;
 
 public class DatabaseService : IDatabaseService, IDisposable
 {
+    private readonly string _dbPath;
     private IDbConnection? _connection;
 
     public IDbConnection Connection
@@ -28,6 +29,7 @@ public class DatabaseService : IDatabaseService, IDisposable
 
     public DatabaseService(string dbPath)
     {
+        _dbPath = dbPath;
         var dir = Path.GetDirectoryName(dbPath);
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
         {

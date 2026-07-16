@@ -6,16 +6,11 @@ internal sealed class CommandInfoExtractor(Command rootCommand, string[] rootAli
     private readonly string[] _rootAliases = rootAliases;
     private readonly bool _includeSubCommands = includeSubCommands;
 
-    public IEnumerable<CommandInfo> Extract() => ExtractFromCommand(_rootCommand, _rootAliases, "", []);
+    public IEnumerable<CommandInfo> Extract() => ExtractFromCommand(_rootCommand, _rootAliases, "");
 
-    private IEnumerable<CommandInfo> ExtractFromCommand(
-        Command command,
-        string[] aliases,
-        string parentPath,
-        IReadOnlyList<string> inheritedPermissions)
+    private IEnumerable<CommandInfo> ExtractFromCommand(Command command, string[] aliases, string parentPath)
     {
         var currentPath = string.IsNullOrEmpty(parentPath) ? aliases[0] : parentPath;
-        var commandPermissions = CombinePermissions(inheritedPermissions, command.RequiredPermissions);
 
         var mainExecutor = command.GetMainCommands()
             .OfType<CommandExecutor>()
@@ -23,22 +18,19 @@ internal sealed class CommandInfoExtractor(Command rootCommand, string[] rootAli
 
         if (mainExecutor != null)
         {
-            yield return CreateCommandInfo(currentPath, aliases, command, mainExecutor, commandPermissions);
+            yield return CreateCommandInfo(currentPath, aliases, command, mainExecutor);
         }
 
         if (!_includeSubCommands)
             yield break;
 
-        foreach (var info in ExtractSubCommands(command, currentPath, commandPermissions))
+        foreach (var info in ExtractSubCommands(command, currentPath))
         {
             yield return info;
         }
     }
 
-    private IEnumerable<CommandInfo> ExtractSubCommands(
-        Command command,
-        string parentPath,
-        IReadOnlyList<string> inheritedPermissions)
+    private IEnumerable<CommandInfo> ExtractSubCommands(Command command, string parentPath)
     {
         var groupedSubCommands = command.GetNamedCommands()
             .SelectMany(kv => kv.Value.Select(cmd => new { Name = kv.Key, Command = cmd }))
@@ -56,11 +48,11 @@ internal sealed class CommandInfoExtractor(Command rootCommand, string[] rootAli
 
             if (item.Command is CommandExecutor executor)
             {
-                yield return CreateCommandInfo(subPath, item.Aliases, null, executor, inheritedPermissions);
+                yield return CreateCommandInfo(subPath, item.Aliases, null, executor);
             }
             else if (item.Command is Command subCmd)
             {
-                foreach (CommandInfo info in ExtractFromCommand(subCmd, item.Aliases, subPath, inheritedPermissions))
+                foreach (CommandInfo info in ExtractFromCommand(subCmd, item.Aliases, subPath))
                 {
                     yield return info;
                 }
@@ -68,22 +60,11 @@ internal sealed class CommandInfoExtractor(Command rootCommand, string[] rootAli
         }
     }
 
-    private static CommandInfo CreateCommandInfo(
-        string path,
-        string[] aliases,
-        Command? command,
-        CommandExecutor executor,
-        IReadOnlyList<string> inheritedPermissions) => new()
+    private static CommandInfo CreateCommandInfo(string path, string[] aliases, Command? command, CommandExecutor executor) => new()
     {
         Path = path,
         Aliases = aliases,
         HelpText = command?.HelpText ?? executor.HelpText,
-        ParameterInfo = executor.ParameterInfo,
-        RequiredPermissions = [.. CombinePermissions(inheritedPermissions, executor.RequiredPermissions)]
+        ParameterInfo = executor.ParameterInfo
     };
-
-    private static IReadOnlyList<string> CombinePermissions(
-        IReadOnlyList<string> inheritedPermissions,
-        IReadOnlyList<string> permissions) =>
-        [.. inheritedPermissions.Concat(permissions).Distinct(StringComparer.Ordinal).OrderBy(permission => permission, StringComparer.Ordinal)];
 }

@@ -10,37 +10,6 @@ namespace Vortex.Bot.Command.Admin;
 [Permission("vortex.admin.group")]
 public static class GroupAdminCommand
 {
-    [Command("permission", "权限")]
-    [CommandType(CommandType.Group | CommandType.Friend)]
-    [Permission("vortex.admin.group.permission")]
-    [HelpText("查看各指令所需权限")]
-    public static class PermissionCmd
-    {
-        [Main]
-        public static async Task Execute(CommandArgs args)
-        {
-            var commands = args.Context.CommandManager
-                .GetAllCommandInfos(CommandType.Group)
-                .OrderBy(command => command.Path, StringComparer.Ordinal)
-                .ToList();
-
-            var builder = TableBuilder.Create()
-                .SetHeader("指令", "所需权限")
-                .SetTitle("指令权限列表")
-                .SetMemberUin(args.SenderUin);
-
-            foreach (var command in commands)
-            {
-                var permissions = command.RequiredPermissions.Length == 0
-                    ? "无"
-                    : string.Join(", ", command.RequiredPermissions);
-                builder.AddRow(command.Path, permissions);
-            }
-
-            await args.ReplyImageAsync(builder.Build());
-        }
-    }
-
     [Command("add", "添加")]
     [CommandType(CommandType.Group | CommandType.Friend)]
     [Permission("vortex.admin.group.add")]

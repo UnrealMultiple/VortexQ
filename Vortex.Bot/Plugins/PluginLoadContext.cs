@@ -1,16 +1,11 @@
 using System.Reflection;
 using System.Runtime.Loader;
-using Vortex.Plugin.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Vortex.Bot.Plugins;
 
 public sealed class PluginLoadContext(string pluginDirectory) : AssemblyLoadContext(isCollectible: true)
 {
-    private static readonly HashSet<string> SharedAssemblyNames =
-    [
-        typeof(IPlugin).Assembly.GetName().Name!,
-    ];
-
     private readonly AssemblyDependencyResolver _resolver = new(pluginDirectory);
     private readonly List<Assembly> _assemblies = [];
 
@@ -29,9 +24,6 @@ public sealed class PluginLoadContext(string pluginDirectory) : AssemblyLoadCont
         {
             try
             {
-                if (SharedAssemblyNames.Contains(AssemblyName.GetAssemblyName(dll).Name!))
-                    continue;
-
                 var assembly = LoadFromAssemblyPath(dll);
                 if (!_assemblies.Contains(assembly))
                     _assemblies.Add(assembly);
@@ -42,7 +34,7 @@ public sealed class PluginLoadContext(string pluginDirectory) : AssemblyLoadCont
         return _assemblies;
     }
 
-    public IReadOnlyList<IPlugin> ResolvePlugins()
+    public IReadOnlyList<IPlugin> ResolvePlugins(IServiceProvider services)
     {
         var plugins = new List<IPlugin>();
 
@@ -57,7 +49,7 @@ public sealed class PluginLoadContext(string pluginDirectory) : AssemblyLoadCont
                 {
                     try
                     {
-                        var plugin = Instantiate(type);
+                        var plugin = Instantiate(type, services);
                         if (plugin is not null)
                             plugins.Add(plugin);
                     }
@@ -76,16 +68,23 @@ public sealed class PluginLoadContext(string pluginDirectory) : AssemblyLoadCont
         return plugins;
     }
 
-    private static IPlugin? Instantiate(Type type)
+    private static IPlugin? Instantiate(Type type, IServiceProvider services)
     {
-        return Activator.CreateInstance(type) as IPlugin;
+        var existing = services.GetService(type) as IPlugin;
+        if (existing is not null) return existing;
+
+        try
+        {
+            return ActivatorUtilities.CreateInstance(services, type) as IPlugin;
+        }
+        catch
+        {
+            return Activator.CreateInstance(type) as IPlugin;
+        }
     }
 
     protected override Assembly? Load(AssemblyName assemblyName)
     {
-        if (assemblyName.Name is not null && SharedAssemblyNames.Contains(assemblyName.Name))
-            return Default.LoadFromAssemblyName(assemblyName);
-
         var path = _resolver.ResolveAssemblyToPath(assemblyName);
         return path is not null ? LoadFromAssemblyPath(path) : Default.LoadFromAssemblyName(assemblyName);
     }

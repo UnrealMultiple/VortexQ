@@ -6,7 +6,6 @@ namespace Vortex.Adapter;
 public class OneBotPlayer : TSPlayer
 {
     public List<string> CommandOutput = new();
-    public bool HasCommandError { get; private set; }
 
     public OneBotPlayer(string playerName) : base(playerName)
     {
@@ -22,8 +21,6 @@ public class OneBotPlayer : TSPlayer
 
     public override void SendMessage(string msg, byte red, byte green, byte blue)
     {
-        if (red >= 180 && red > green + 40 && red > blue + 40)
-            HasCommandError = true;
         this.CommandOutput.Add(string.Join("", Terraria.UI.Chat.ChatManager.ParseMessage(msg, Color.White).Select(x => x.Text)));
     }
 
@@ -39,13 +36,11 @@ public class OneBotPlayer : TSPlayer
 
     public override void SendWarningMessage(string msg)
     {
-        HasCommandError = true;
         this.SendMessage(msg, Color.OrangeRed);
     }
 
     public override void SendErrorMessage(string msg)
     {
-        HasCommandError = true;
         this.SendMessage(msg, Color.Red);
     }
 

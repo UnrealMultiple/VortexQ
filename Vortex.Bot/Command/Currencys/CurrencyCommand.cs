@@ -4,7 +4,7 @@ using Vortex.Bot.Utility.Images;
 
 namespace Vortex.Bot.Command.Currencys;
 
-[Command("货币", "bank")]
+[Command("bank", "货币")]
 [HelpText("货币管理")]
 [CommandType(CommandType.Group | CommandType.Friend)]
 [Permission("vortex.currency")]

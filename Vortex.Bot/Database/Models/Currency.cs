@@ -30,11 +30,7 @@ public class Currency
         var currency = Query(userId);
         if (currency == null)
         {
-            currency = new Currency
-            {
-                UserId = userId,
-                Num = amount
-            };
+            currency = new Currency { UserId = userId, Num = amount };
             RecordBase.GetContext<Currency>("Currency").Insert(currency);
         }
         else
@@ -56,17 +52,14 @@ public class Currency
         var currency = Query(userId);
         if (currency == null)
         {
-            currency = new Currency
-            {
-                UserId = userId,
-                Num = -amount
-            };
+            currency = new Currency { UserId = userId, Num = -amount };
             RecordBase.GetContext<Currency>("Currency").Insert(currency);
-            return currency;
         }
-
-        currency.Num -= amount;
-        RecordBase.GetContext<Currency>("Currency").Update(currency);
+        else
+        {
+            currency.Num -= amount;
+            RecordBase.GetContext<Currency>("Currency").Update(currency);
+        }
 
         return currency;
     }
@@ -76,11 +69,7 @@ public class Currency
         var currency = Query(userId);
         if (currency == null)
         {
-            currency = new Currency
-            {
-                UserId = userId,
-                Num = amount
-            };
+            currency = new Currency { UserId = userId, Num = amount };
             RecordBase.GetContext<Currency>("Currency").Insert(currency);
         }
         else
@@ -100,12 +89,34 @@ public class Currency
         }
 
         Deduct(fromUserId, amount);
-        Add(toUserId, amount);
+        try
+        {
+            Add(toUserId, amount);
+        }
+        catch
+        {
+            Add(fromUserId, amount);
+            throw;
+        }
     }
 
-    public static List<Currency> GetTop(int top = 10) => [.. DataContext.Records
-            .OrderByDescending(x => x.Num)
-            .Take(top)];
+    public static List<Currency> GetTop(int top = 10)
+    {
+        var context = DataContext;
+        try
+        {
+            return [.. context.Records
+                .OrderByDescending(x => x.Num)
+                .Take(top)];
+        }
+        finally
+        {
+            Dispose(context);
+        }
+    }
+
+    private static void Dispose(IDataContext<Currency> context) =>
+        (context as IDisposable)?.Dispose();
 
     #endregion
 }

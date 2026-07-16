@@ -1,103 +1,77 @@
-using Vortex.Plugin.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using Vortex.Bot.Attributes;
+using Vortex.Bot.Command;
+using Vortex.Bot.Core.Service;
+using Vortex.Bot.Plugins;
+using Vortex.Bot.Utility.Images;
+using Vortex.Protocol.Packets;
 
 namespace TerrariaRankBridge;
 
+[Plugin(Name = "TerrariaRankBridge", Author = "VortexQ", Description = "泰拉瑞亚在线与死亡排行", Major = 2)]
 public sealed class TerrariaRankBridgePlugin : PluginBase
 {
-    private static readonly PluginColor Gold = new(196, 145, 2);
-    private static readonly PluginColor Silver = new(110, 117, 127);
-    private static readonly PluginColor Bronze = new(160, 86, 33);
+    protected override ValueTask OnInitializeAsync(CancellationToken cancellationToken) => default;
+    protected override ValueTask OnShutdownAsync(CancellationToken cancellationToken) => default;
+}
 
-    public override PluginMetadata Metadata { get; } = new(
-        "TerrariaRankBridge",
-        "VortexQ",
-        "泰拉瑞亚在线与死亡排行",
-        new Version(2, 0, 0));
+[Command("在线排行")]
+[CommandType(CommandType.Group)]
+public static class OnlineRankCommand
+{
+    [Main]
+    public static Task Execute(GroupCommandArgs args) => RankCommands.ShowAsync(args, true);
+}
 
-    protected override ValueTask OnInitializeAsync(CancellationToken cancellationToken)
+[Command("死亡排行")]
+[CommandType(CommandType.Group)]
+public static class DeathRankCommand
+{
+    [Main]
+    public static Task Execute(GroupCommandArgs args) => RankCommands.ShowAsync(args, false);
+}
+
+internal static class RankCommands
+{
+    public static async Task ShowAsync(GroupCommandArgs args, bool online)
     {
-        Commands.Register(new PluginCommand("在线排行", PluginCommandScope.Group, ShowOnlineRankAsync, helpText: "查看在线时长排行"));
-        Commands.Register(new PluginCommand("死亡排行", PluginCommandScope.Group, ShowDeathRankAsync, helpText: "查看死亡次数排行"));
-        return default;
-    }
-
-    private ValueTask ShowOnlineRankAsync(IPluginCommandContext context, CancellationToken cancellationToken) =>
-        ShowRankAsync(context, true, cancellationToken);
-
-    private ValueTask ShowDeathRankAsync(IPluginCommandContext context, CancellationToken cancellationToken) =>
-        ShowRankAsync(context, false, cancellationToken);
-
-    private async ValueTask ShowRankAsync(IPluginCommandContext context, bool online, CancellationToken cancellationToken)
-    {
-        var serverName = Terraria.GetSelectedServerName(context.UserId, context.GroupId);
-        if (string.IsNullOrWhiteSpace(serverName))
+        var servers = args.Context.Server?.Services.GetService<TerrariaServerService>();
+        if (servers == null || !servers.TryGetUserServer(args.SenderUin, args.GroupUin, out var server) || server?.GetOnlineClientId() is not { } clientId)
         {
-            await context.ReplyWithAtAsync("请先使用 /切换服务器 选择服务器。");
+            await args.ReplyWithAtAsync("请先选择并连接服务器。");
             return;
         }
 
-        var result = online
-            ? await Terraria.GetOnlineRankAsync(serverName, cancellationToken)
-            : await Terraria.GetDeathRankAsync(serverName, cancellationToken);
-        if (!result.Success)
+        if (online)
         {
-            await context.ReplyWithAtAsync(string.IsNullOrWhiteSpace(result.Message) ? "获取排行失败。" : $"获取排行失败：{result.Message}");
+            var response = await args.Context.Server!.RequestAsync<OnlineRankPacket, OnlineRankPacketResponse>(clientId, new OnlineRankPacket());
+            await ReplyAsync(args, response?.Success == true ? response.OnlineRank : null, "在线时长", static value => FormatDuration(value));
+        }
+        else
+        {
+            var response = await args.Context.Server!.RequestAsync<DeathRankPacket, DeathRankPacketResponse>(clientId, new DeathRankPacket());
+            await ReplyAsync(args, response?.Success == true ? response.Rank : null, "死亡次数", static value => value.ToString());
+        }
+    }
+
+    private static async Task ReplyAsync(GroupCommandArgs args, Dictionary<string, int>? rank, string title, Func<int, string> format)
+    {
+        if (rank == null || rank.Count == 0)
+        {
+            await args.ReplyWithAtAsync("当前没有排行数据。");
             return;
         }
 
-        var entries = result.Entries
-            .OrderByDescending(static entry => entry.Value)
-            .ThenBy(static entry => entry.Name, StringComparer.Ordinal)
-            .Take(100)
-            .ToArray();
-        if (entries.Length == 0)
-        {
-            await context.ReplyWithAtAsync("当前没有排行数据。");
-            return;
-        }
+        var table = TableBuilder.Create().SetTitle(title).SetHeader("排名", "玩家", title).SetMemberUin(args.SenderUin);
+        foreach (var entry in rank.OrderByDescending(static item => item.Value).ThenBy(static item => item.Key).Take(100).Select((item, index) => (item, index)))
+            table.AddRow((entry.index + 1).ToString(), entry.item.Key, format(entry.item.Value));
 
-        var rows = entries
-            .Select((entry, index) => CreateRow(index + 1, entry, online))
-            .ToArray();
-        var unit = online ? "在线时长" : "死亡次数";
-        var table = new PluginTable(
-            $"{serverName} - {unit}排行",
-            new PluginTableCell[] { new("排名"), new("玩家"), new(unit) },
-            rows)
-        {
-            MemberUin = context.UserId
-        };
-        await context.ReplyImageAsync(Images.RenderTable(table));
+        await args.ReplyImageAsync(table.Build());
     }
 
-    private static IReadOnlyList<PluginTableCell> CreateRow(int rank, PluginRankEntry entry, bool online)
+    private static string FormatDuration(int totalSeconds)
     {
-        var (label, color, style) = rank switch
-        {
-            1 => ("★ 1", (PluginColor?)Gold, PluginFontStyle.Bold),
-            2 => ("◆ 2", (PluginColor?)Silver, PluginFontStyle.Bold),
-            3 => ("▲ 3", (PluginColor?)Bronze, PluginFontStyle.Bold),
-            _ => (rank.ToString(), null, PluginFontStyle.Regular)
-        };
-        var value = online ? FormatOnlineDuration(entry.Value) : $"{entry.Value:N0} 次";
-        return new PluginTableCell[]
-        {
-            new(label, color, style),
-            new(entry.Name, color, style),
-            new(value, color, style)
-        };
-    }
-
-    private static string FormatOnlineDuration(long totalSeconds)
-    {
-        var days = totalSeconds / (24 * 60 * 60);
-        var hours = totalSeconds % (24 * 60 * 60) / (60 * 60);
-        var minutes = totalSeconds % (60 * 60) / 60;
-        var seconds = totalSeconds % 60;
-
-        if (days > 0) return $"{days}天 {hours}小时 {minutes}分钟";
-        if (hours > 0) return $"{hours}小时 {minutes}分钟";
-        if (minutes > 0) return $"{minutes}分钟 {seconds}秒";
-        return $"{seconds}秒";
+        var duration = TimeSpan.FromSeconds(totalSeconds);
+        return $"{(int)duration.TotalDays}天{duration.Hours}小时{duration.Minutes}分钟{duration.Seconds}秒";
     }
 }

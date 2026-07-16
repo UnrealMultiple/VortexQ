@@ -31,9 +31,9 @@ internal static class Constants
         if (string.IsNullOrWhiteSpace(version))
             return "Unknown";
 
-        var metadataIndex = version.IndexOf('+');
-        return metadataIndex >= 0 && metadataIndex < version.Length - 1
-            ? version[(metadataIndex + 1)..]
+        var metadataSeparator = version.IndexOf('+');
+        return metadataSeparator >= 0 && metadataSeparator < version.Length - 1
+            ? version[(metadataSeparator + 1)..]
             : version;
     }
 }

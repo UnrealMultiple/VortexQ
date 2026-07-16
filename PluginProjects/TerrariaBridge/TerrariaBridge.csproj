@@ -7,13 +7,21 @@
     <AssemblyName>TerrariaBridge</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Vortex.Plugin.Abstractions\Vortex.Plugin.Abstractions.csproj" />
+    <ProjectReference Include="..\..\Vortex.Bot\Vortex.Bot.csproj" Private="false" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Config\Prize.json" CopyToOutputDirectory="PreserveNewest" TargetPath="Prize.json" />
     <Content Include="Config\CurrencyLotteryState.json" CopyToOutputDirectory="PreserveNewest" TargetPath="CurrencyLotteryState.json" />
   </ItemGroup>
-  <Target Name="RemoveLegacyConfigOutput" AfterTargets="Build">
-    <RemoveDir Directories="$(OutputPath)Config" />
+  <Target Name="KeepPluginOutputMinimal" AfterTargets="Build">
+    <ItemGroup>
+      <PluginDependencyFiles Include="$(OutputPath)*.dll" Exclude="$(OutputPath)TerrariaBridge.dll" />
+      <PluginDependencyFiles Include="$(OutputPath)*.pdb" />
+      <PluginDependencyFiles Include="$(OutputPath)*.deps.json" />
+      <PluginDependencyFiles Include="$(OutputPath)*.exe" />
+      <PluginDependencyFiles Include="$(OutputPath)*.runtimeconfig.json" />
+    </ItemGroup>
+    <Delete Files="@(PluginDependencyFiles)" />
+    <RemoveDir Directories="$(OutputPath)Config;$(OutputPath)Resources" />
   </Target>
 </Project>

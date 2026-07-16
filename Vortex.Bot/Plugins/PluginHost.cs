@@ -1,26 +1,19 @@
+using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Vortex.Plugin.Abstractions;
+using Vortex.Bot.Command;
+using Vortex.Bot.Configuration;
 
 namespace Vortex.Bot.Plugins;
 
-public sealed class PluginHost(
-    IPlugin plugin,
-    PluginInfo info,
-    ILogger logger,
-    PluginCommandRegistry commandRegistry,
-    PluginCurrencyService currency,
-    PluginTerrariaService terraria,
-    PluginImageService images,
-    string currencyName) : IAsyncDisposable
+public sealed class PluginHost(IPlugin plugin, PluginInfo info, IServiceProvider services, ILogger logger, CommandManager? commands = null) : IAsyncDisposable
 {
     private readonly IPlugin _plugin = plugin ?? throw new ArgumentNullException(nameof(plugin));
     private readonly PluginInfo _info = info ?? throw new ArgumentNullException(nameof(info));
+    private readonly IServiceProvider _services = services ?? throw new ArgumentNullException(nameof(services));
     private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    private readonly PluginCommandRegistry _commandRegistry = commandRegistry ?? throw new ArgumentNullException(nameof(commandRegistry));
-    private readonly PluginCurrencyService _currency = currency ?? throw new ArgumentNullException(nameof(currency));
-    private readonly PluginTerrariaService _terraria = terraria ?? throw new ArgumentNullException(nameof(terraria));
-    private readonly PluginImageService _images = images ?? throw new ArgumentNullException(nameof(images));
-    private readonly string _currencyName = currencyName;
+    private readonly CommandManager? _commands = commands;
+    private readonly List<Type> _configs = [];
     private bool _disposed;
     private bool _initialized;
 
@@ -34,25 +27,29 @@ public sealed class PluginHost(
         if (_initialized) return;
 
         _logger.LogHostInitializing(_info.Name, _info.Version, _info.Author);
-        var context = new PluginContextAdapter(
-            _info.Directory,
-            _currencyName,
-            new PluginLoggerAdapter(_logger),
-            _commandRegistry.CreateScope(_info.Name),
-            _currency,
-            _terraria,
-            _images);
 
         try
         {
-            await _plugin.InitializeAsync(context, cancellationToken);
+            var vortex = _services.GetRequiredService<VortexContext>();
+            var context = new PluginContext(_services, _logger, _info.Directory, vortex);
+
+            if (_plugin is PluginBase basePlugin)
+            {
+                await basePlugin.InitializeAsync(context, cancellationToken);
+            }
+            else
+            {
+                await _plugin.InitializeAsync(context, cancellationToken);
+                await AutoRegisterCommandsAsync();
+                await AutoLoadConfigsAsync();
+            }
+
             _initialized = true;
             _info.IsInitialized = true;
             _logger.LogHostInitialized(_info.Name);
         }
         catch (Exception ex)
         {
-            _commandRegistry.Unregister(_info.Name);
             _logger.LogHostInitFailed(_info.Name, ex);
             throw;
         }
@@ -64,9 +61,12 @@ public sealed class PluginHost(
         if (!_initialized) return;
 
         _logger.LogHostShuttingDown(_info.Name);
+
         try
         {
+            await UnloadConfigsAsync();
             await _plugin.ShutdownAsync(cancellationToken);
+
             _initialized = false;
             _info.IsInitialized = false;
             _logger.LogHostShutDown(_info.Name);
@@ -76,19 +76,95 @@ public sealed class PluginHost(
             _logger.LogHostShutdownError(_info.Name, ex);
             throw;
         }
-        finally
+    }
+
+    private async ValueTask AutoRegisterCommandsAsync()
+    {
+        if (_commands is null) return;
+
+        try
         {
-            _commandRegistry.Unregister(_info.Name);
+            _commands.AutoRegister(_plugin.GetType().Assembly);
+            _logger.LogHostCommandsRegistered(_info.Name);
         }
+        catch (Exception ex)
+        {
+            _logger.LogHostCommandRegFailed(_info.Name, ex);
+        }
+    }
+
+    private async ValueTask AutoLoadConfigsAsync()
+    {
+        try
+        {
+            _configs.Clear();
+            var baseType = typeof(JsonConfigBase<>);
+
+            foreach (var type in _plugin.GetType().Assembly.GetExportedTypes())
+            {
+                if (type.IsAbstract || type.IsInterface) continue;
+
+                var current = type.BaseType;
+                while (current is not null)
+                {
+                    if (current.IsGenericType && current.GetGenericTypeDefinition() == baseType)
+                    {
+                        _configs.Add(type);
+                        break;
+                    }
+                    current = current.BaseType;
+                }
+            }
+
+            foreach (var configType in _configs)
+            {
+                try
+                {
+                    var loadMethod = configType.GetMethod("Load", BindingFlags.Public | BindingFlags.Static);
+                    var fileName = loadMethod?.Invoke(null, null) as string;
+                    _logger.LogHostConfigLoaded(_info.Name, fileName ?? configType.Name);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogHostConfigLoadFailed(_info.Name, configType.Name, ex);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogHostConfigLoadingFailed(_info.Name, ex);
+        }
+    }
+
+    private async ValueTask UnloadConfigsAsync()
+    {
+        foreach (var configType in _configs)
+        {
+            try
+            {
+                var unloadMethod = configType.GetMethod("Unload", BindingFlags.Public | BindingFlags.Static);
+                unloadMethod?.Invoke(null, null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogHostConfigUnloadFailed(_info.Name, configType.Name, ex);
+            }
+        }
+        _configs.Clear();
     }
 
     public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
+
         try
         {
             if (_initialized)
                 await ShutdownAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogHostDisposalError(_info.Name, ex);
         }
         finally
         {
@@ -97,5 +173,8 @@ public sealed class PluginHost(
         }
     }
 
-    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, nameof(PluginHost));
+    private void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, nameof(PluginHost));
+    }
 }
