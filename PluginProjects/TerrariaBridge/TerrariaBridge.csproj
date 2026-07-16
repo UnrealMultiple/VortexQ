@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>TerrariaBridge</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Vortex.Bot\Vortex.Bot.csproj" Private="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Config\Prize.json" CopyToOutputDirectory="PreserveNewest" TargetPath="Prize.json" />
+    <Content Include="Config\CurrencyLotteryState.json" CopyToOutputDirectory="PreserveNewest" TargetPath="CurrencyLotteryState.json" />
+  </ItemGroup>
+  <Target Name="KeepPluginOutputMinimal" AfterTargets="Build">
+    <ItemGroup>
+      <PluginDependencyFiles Include="$(OutputPath)*.dll" Exclude="$(OutputPath)TerrariaBridge.dll" />
+      <PluginDependencyFiles Include="$(OutputPath)*.pdb" />
+      <PluginDependencyFiles Include="$(OutputPath)*.deps.json" />
+      <PluginDependencyFiles Include="$(OutputPath)*.exe" />
+      <PluginDependencyFiles Include="$(OutputPath)*.runtimeconfig.json" />
+    </ItemGroup>
+    <Delete Files="@(PluginDependencyFiles)" />
+    <RemoveDir Directories="$(OutputPath)Config;$(OutputPath)Resources" />
+  </Target>
+</Project>

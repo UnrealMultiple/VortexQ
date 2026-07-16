@@ -2,11 +2,13 @@ using Lagrange.Core;
 using Lagrange.Core.Common;
 using Lagrange.Core.Common.Interface;
 using Lagrange.Core.Events.EventArgs;
+using Lagrange.Core.Message;
 using Lagrange.Core.Message.Entities;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Reflection;
+using System.Text;
 using Vortex.Bot.Command;
 using Vortex.Bot.Configuration;
 using Vortex.Bot.Extension;
@@ -65,14 +67,72 @@ public class CoreLoginService(ILogger<CoreLoginService> logger, IOptions<CoreCon
 
     private async Task CommandGroupAdapter(BotContext ctx, BotMessageEvent e)
     {
-        var text = e.Message.Entities.GetEnitys<TextEntity>().ToJoinedString(x => x.Text, "");
+        var text = BuildCommandText(e.Message.Entities);
         await _cmd.ExecuteGroupAsync(text, e, _vortexContext);
     }
 
     private async Task CommandPrivateAdapter(BotContext ctx, BotMessageEvent e)
     {
-        var text = e.Message.Entities.GetEnitys<TextEntity>().ToJoinedString(x => x.Text, "");
+        var text = BuildCommandText(e.Message.Entities);
         await _cmd.ExecutePrivateAsync(text, e, _vortexContext);
+    }
+
+    private static string BuildCommandText(MessageChain entities)
+    {
+        var builder = new StringBuilder();
+
+        foreach (var entity in entities)
+        {
+            if (entity is TextEntity text)
+            {
+                builder.Append(text.Text);
+                continue;
+            }
+
+            // Mentions are structured entities, so preserve their QQ number as a normal argument.
+            if (entity.GetType().Name == "MentionEntity" && TryGetMentionUin(entity, out var uin))
+            {
+                if (builder.Length > 0 && !char.IsWhiteSpace(builder[^1]))
+                    builder.Append(' ');
+
+                builder.Append(uin);
+                builder.Append(' ');
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static bool TryGetMentionUin(object entity, out long uin)
+    {
+        foreach (var propertyName in new[] { "Uin", "TargetUin", "Target", "UserId", "Id" })
+        {
+            var value = entity.GetType().GetProperty(propertyName)?.GetValue(entity);
+            if (value == null)
+                continue;
+
+            if (value is string text)
+            {
+                if (long.TryParse(text, out uin) && uin > 0)
+                    return true;
+
+                continue;
+            }
+
+            try
+            {
+                uin = Convert.ToInt64(value);
+                if (uin > 0)
+                    return true;
+            }
+            catch (Exception)
+            {
+                // The entity has a non-numeric property with this name; try the next known shape.
+            }
+        }
+
+        uin = 0;
+        return false;
     }
 
     private void HandleNewDeviceVerify(BotContext _, BotNewDeviceVerifyEvent @event)
