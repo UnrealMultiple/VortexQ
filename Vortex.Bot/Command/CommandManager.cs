@@ -5,14 +5,17 @@ using Vortex.Bot.Attributes;
 using Vortex.Bot.Configuration;
 using Vortex.Bot.Extension;
 using Vortex.Bot.Utility;
+using Vortex.Bot.Plugins;
+using Vortex.Plugin.Abstractions;
 using Vortex.Protocol.Models;
 
 namespace Vortex.Bot.Command;
 
-public sealed class CommandManager(ILogger<CommandManager> logger)
+public sealed class CommandManager(ILogger<CommandManager> logger, PluginCommandRegistry pluginCommands)
 {
     private readonly Dictionary<string, CommandRegistration> _commands = [];
     private readonly ILogger<CommandManager> _logger = logger;
+    private readonly PluginCommandRegistry _pluginCommands = pluginCommands;
 
     public void AutoRegister(Assembly assembly)
     {
@@ -76,16 +79,18 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
         if (!TryExtractCommandName(parameters, context.Configuration.Command, out string? cmdName, out List<string>? argsParams))
             return false;
 
-        if (!TryGetCommandRegistration(cmdName, CommandType.Server, out CommandRegistration? registration))
-            return false;
-
         var args = CreateServerArgs(context, argsParams, player, sessionId, parameters, context.Configuration.Command);
 
         if (await TriggerCommandExecuting(args, cmdName))
             return true;
 
-        await CommandHelper.ExecuteAsync(registration.Tree, args, cmdName);
-        return true;
+        if (TryGetCommandRegistration(cmdName, CommandType.Server, out CommandRegistration? registration))
+        {
+            await CommandHelper.ExecuteAsync(registration.Tree, args, cmdName);
+            return true;
+        }
+
+        return await ExecutePluginCommandAsync(cmdName, PluginCommandScope.Server, args);
     }
 
     private async Task<bool> ExecuteAsync<TArgs>(
@@ -102,9 +107,6 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
         if (!TryExtractCommandName(parameters, context.Configuration.Command, out string? cmdName, out List<string>? argsParams))
             return false;
 
-        if (!TryGetCommandRegistration(cmdName, requiredType, out CommandRegistration? registration))
-            return false;
-
         var args = argsFactory(argsParams, messageEvent);
         args.CommandName = parameters[0];
         args.CommandPrefix = context.Configuration.Command.EnablePrefix ? context.Configuration.Command.Prefix : string.Empty;
@@ -112,8 +114,14 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
         if (await TriggerCommandExecuting(args, cmdName))
             return true;
 
-        await CommandHelper.ExecuteAsync(registration.Tree, args, cmdName);
-        return true;
+        if (TryGetCommandRegistration(cmdName, requiredType, out CommandRegistration? registration))
+        {
+            await CommandHelper.ExecuteAsync(registration.Tree, args, cmdName);
+            return true;
+        }
+
+        var scope = requiredType == CommandType.Group ? PluginCommandScope.Group : PluginCommandScope.Friend;
+        return await ExecutePluginCommandAsync(cmdName, scope, args);
     }
 
     public bool HasCommand(string name, CommandType? commandType = null) => _commands.TryGetValue(name.ToLowerInvariant(), out CommandRegistration? registration)
@@ -179,7 +187,6 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
 
         if (!_commands.TryGetValue(cmdName, out CommandRegistration? reg))
         {
-            _logger.LogCommandNotFound(cmdName);
             return false;
         }
 
@@ -202,6 +209,33 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
         }
         return false;
     }
+
+    private async Task<bool> ExecutePluginCommandAsync(string cmdName, PluginCommandScope scope, CommandArgs args)
+    {
+        if (!_pluginCommands.TryGet(cmdName, scope, out var command))
+        {
+            _logger.LogCommandNotFound(cmdName);
+            return false;
+        }
+
+        if (!string.IsNullOrEmpty(command.RequiredPermission) && !args.HasPermission(command.RequiredPermission))
+        {
+            await args.ReplyWithAtAsync("你没有权限执行此指令。");
+            return true;
+        }
+
+        try
+        {
+            await command.Handler(new PluginCommandContextAdapter(scope, args), CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogPluginCommandFailed(cmdName, ex);
+            await args.ReplyWithAtAsync("插件指令执行失败，请查看机器人日志。");
+        }
+
+        return true;
+    }
         
     private static ServerCommandArgs CreateServerArgs(
         VortexContext context,
@@ -217,6 +251,28 @@ public sealed class CommandManager(ILogger<CommandManager> logger)
             CommandPrefix = config.EnablePrefix ? config.Prefix : string.Empty
         };
     }
+}
+
+internal sealed class PluginCommandContextAdapter(PluginCommandScope scope, CommandArgs args) : IPluginCommandContext
+{
+    public PluginCommandScope Scope { get; } = scope;
+    public string CommandName => args.CommandName;
+    public IReadOnlyList<string> Arguments => args.Params;
+    public long UserId => args.SenderUin;
+    public long GroupId => args is GroupCommandArgs group ? group.GroupUin : 0;
+    public string SenderName => args switch
+    {
+        GroupCommandArgs group => group.SenderDisplayName ?? string.Empty,
+        PrivateCommandArgs friend => friend.FriendNickname ?? string.Empty,
+        _ => string.Empty
+    };
+    public string PlayerName => args is ServerCommandArgs server ? server.Player.Name : string.Empty;
+    public long BoundUserId => args is ServerCommandArgs server ? server.User?.Id ?? 0 : 0;
+    public string ServerName => args is ServerCommandArgs server ? server.Server?.Config.Name ?? string.Empty : string.Empty;
+    public bool HasPermission(string permission) => args.HasPermission(permission);
+    public Task ReplyAsync(string message) => args.ReplyAsync(message);
+    public Task ReplyWithAtAsync(string message) => args.ReplyWithAtAsync(message);
+    public Task ReplyImageAsync(byte[] imageData) => args.ReplyImageAsync(imageData);
 }
 
 public static partial class CommandManagerLoggerExtension
@@ -238,4 +294,7 @@ public static partial class CommandManagerLoggerExtension
 
     [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Debug, "Command '{Command}' was intercepted by event")]
     public static partial void LogCommandIntercepted(this ILogger<CommandManager> logger, string command);
+
+    [LoggerMessage(Microsoft.Extensions.Logging.LogLevel.Error, "Plugin command '{Command}' failed")]
+    public static partial void LogPluginCommandFailed(this ILogger<CommandManager> logger, string command, Exception ex);
 }

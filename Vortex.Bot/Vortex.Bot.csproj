@@ -40,6 +40,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Vortex.Plugin.Abstractions\Vortex.Plugin.Abstractions.csproj" />
     <ProjectReference Include="..\LagrangeV2\Lagrange.Core\Lagrange.Core.csproj" />
     <ProjectReference Include="..\Vortex.Protocol\Vortex.Protocol.csproj" />
   </ItemGroup>

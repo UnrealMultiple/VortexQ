@@ -1,32 +1,41 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
-using Vortex.Bot.Command;
+using Vortex.Bot.Configuration;
 
 namespace Vortex.Bot.Plugins;
 
 public sealed class PluginManager : IAsyncDisposable
 {
     private readonly ILogger<PluginManager> _logger;
-    private readonly IServiceProvider _services;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly CommandManager _commands;
+    private readonly PluginCommandRegistry _commandRegistry;
+    private readonly PluginCurrencyService _currency;
+    private readonly PluginTerrariaService _terraria;
+    private readonly PluginImageService _images;
+    private readonly CoreConfiguration _configuration;
     private readonly PluginLoader _loader;
     private readonly ConcurrentDictionary<string, PluginHost> _hosts = new();
-    private readonly List<PluginLoadContext> _contexts = [];
+    private readonly ConcurrentDictionary<string, PluginLoadContext> _loadContexts = new();
     private readonly string _pluginsDirectory;
     private bool _disposed;
 
     public PluginManager(
         ILogger<PluginManager> logger,
-        IServiceProvider services,
         ILoggerFactory loggerFactory,
-        CommandManager commands)
+        PluginCommandRegistry commandRegistry,
+        PluginCurrencyService currency,
+        PluginTerrariaService terraria,
+        PluginImageService images,
+        Microsoft.Extensions.Options.IOptions<CoreConfiguration> configuration)
     {
         _logger = logger;
-        _services = services;
         _loggerFactory = loggerFactory;
-        _commands = commands;
-        _loader = new PluginLoader(services, loggerFactory.CreateLogger<PluginLoader>());
+        _commandRegistry = commandRegistry;
+        _currency = currency;
+        _terraria = terraria;
+        _images = images;
+        _configuration = configuration.Value;
+        _loader = new PluginLoader(loggerFactory.CreateLogger<PluginLoader>());
         _pluginsDirectory = Path.Combine(AppContext.BaseDirectory, "Plugins");
 
         EnsureDirectory();
@@ -81,6 +90,8 @@ public sealed class PluginManager : IAsyncDisposable
         try
         {
             await host.DisposeAsync();
+            if (_loadContexts.TryRemove(pluginName, out var loadContext))
+                loadContext.Unload();
             _logger.LogUnloaded(pluginName);
             return true;
         }
@@ -137,12 +148,6 @@ public sealed class PluginManager : IAsyncDisposable
             await UnloadAsync(pluginName, cancellationToken);
         }
 
-        foreach (var context in _contexts)
-        {
-            context.Unload();
-        }
-        _contexts.Clear();
-
         CollectGarbage();
         await LoadAllAsync(cancellationToken);
 
@@ -180,19 +185,6 @@ public sealed class PluginManager : IAsyncDisposable
             }
         }
 
-        foreach (var context in _contexts)
-        {
-            try
-            {
-                context.Unload();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogContextUnloadError(ex);
-            }
-        }
-        _contexts.Clear();
-
         _disposed = true;
         _logger.LogDisposed();
     }
@@ -223,11 +215,20 @@ public sealed class PluginManager : IAsyncDisposable
         if (_hosts.ContainsKey(info.Name))
         {
             _logger.LogAlreadyLoaded(info.Name);
+            result.LoadContext?.Unload();
             return;
         }
 
         var logger = _loggerFactory.CreateLogger(plugin.GetType());
-        var host = new PluginHost(plugin, info, _services, logger, _commands);
+        var host = new PluginHost(
+            plugin,
+            info,
+            logger,
+            _commandRegistry,
+            _currency,
+            _terraria,
+            _images,
+            _configuration.Miscellaneous.CurrencyName);
 
         if (!_hosts.TryAdd(info.Name, host))
         {
@@ -235,7 +236,18 @@ public sealed class PluginManager : IAsyncDisposable
             return;
         }
 
-        await host.InitializeAsync(cancellationToken);
+        try
+        {
+            await host.InitializeAsync(cancellationToken);
+            if (result.LoadContext is not null)
+                _loadContexts[info.Name] = result.LoadContext;
+        }
+        catch
+        {
+            _hosts.TryRemove(info.Name, out _);
+            result.LoadContext?.Unload();
+            throw;
+        }
     }
 
     private void EnsureDirectory()
@@ -253,4 +265,5 @@ public sealed class PluginManager : IAsyncDisposable
         GC.WaitForPendingFinalizers();
         GC.Collect();
     }
+
 }

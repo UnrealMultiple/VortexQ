@@ -1,4 +1,4 @@
-﻿using SixLabors.Fonts;
+using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Vortex.Bot.Extension;

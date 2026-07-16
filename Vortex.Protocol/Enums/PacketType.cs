@@ -59,5 +59,8 @@ public enum PacketType : byte
     PlayerMessage,
     PlayerLeave,
     PlayerJoin,
-    HeartBeat
+    HeartBeat,
+
+    GiveItem,
+    GiveItemResponse
 }
