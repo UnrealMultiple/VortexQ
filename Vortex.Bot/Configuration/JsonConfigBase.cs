@@ -7,7 +7,7 @@ namespace Vortex.Bot.Configuration;
 public abstract class JsonConfigBase<T> where T : JsonConfigBase<T>, new()
 {
     private static T? _instance;
-    private static readonly object _lock = new();
+    private static readonly Lock _lock = new();
 
     [JsonIgnore]
     public virtual string FileName => typeof(T).Name;
@@ -17,6 +17,14 @@ public abstract class JsonConfigBase<T> where T : JsonConfigBase<T>, new()
 
     [JsonIgnore]
     private string FullPath => Path.Combine(Directory, $"{FileName}.json");
+
+    private static readonly JsonSerializerOptions _serializerOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
 
     public virtual void SetDefault()
     {
@@ -35,15 +43,7 @@ public abstract class JsonConfigBase<T> where T : JsonConfigBase<T>, new()
         {
             System.IO.Directory.CreateDirectory(dir);
         }
-
-        JsonSerializerOptions options = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        };
-
-        string json = JsonSerializer.Serialize((T)this, options);
+        string json = JsonSerializer.Serialize((T)this, _serializerOptions);
         File.WriteAllText(filePath, json);
     }
 
@@ -51,7 +51,7 @@ public abstract class JsonConfigBase<T> where T : JsonConfigBase<T>, new()
     {
         T temp = new T();
         string fullPath = temp.FullPath;
-
+        Console.WriteLine(fullPath);
         if (!File.Exists(fullPath))
         {
             temp.SetDefault();
@@ -60,13 +60,7 @@ public abstract class JsonConfigBase<T> where T : JsonConfigBase<T>, new()
         }
 
         string json = File.ReadAllText(fullPath);
-        JsonSerializerOptions options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            PropertyNameCaseInsensitive = true
-        };
-
-        var config = JsonSerializer.Deserialize<T>(json, options);
+        var config = JsonSerializer.Deserialize<T>(json, _serializerOptions);
         if (config == null)
         {
             temp.SetDefault();

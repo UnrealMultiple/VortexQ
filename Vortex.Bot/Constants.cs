@@ -14,7 +14,7 @@ internal static class Constants
     """;
 
     public const string ConfigFileName = "appsettings.jsonc";
-    public const string ConfigResourceName = $"Vortex.Bot.Resources.{ConfigFileName}";
+    public const string ConfigResourceName = $"Vortex.Bot.Resources.Json.{ConfigFileName}";
 
     public static string ImplementationName = "Vortex.Bot";
 

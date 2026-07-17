@@ -9,10 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Vortex.Bot\Vortex.Bot.csproj" Private="false" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Include="Config\Prize.json" CopyToOutputDirectory="PreserveNewest" TargetPath="Prize.json" />
-    <Content Include="Config\CurrencyLotteryState.json" CopyToOutputDirectory="PreserveNewest" TargetPath="CurrencyLotteryState.json" />
-  </ItemGroup>
   <Target Name="KeepPluginOutputMinimal" AfterTargets="Build">
     <ItemGroup>
       <PluginDependencyFiles Include="$(OutputPath)*.dll" Exclude="$(OutputPath)TerrariaBridge.dll" />
