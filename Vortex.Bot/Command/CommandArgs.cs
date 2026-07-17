@@ -209,11 +209,23 @@ public class ServerCommandArgs : CommandArgs
 
     public override async Task ReplyAsync(string message)
     {
+        if (TerrariaServerService != null && Server != null)
+        {
+            var response = await TerrariaServerService.SendPlayerMessageAsync(
+                Server.Config.Name,
+                Player.Name,
+                Player.Index,
+                message);
+            if (response?.Success == true)
+                return;
+        }
+
 #pragma warning disable CS8602
         _ = await VortexSocketService?.SendToSessionAsync(SessionId, new PrivateMessagePacket()
         {
             Text = message,
             Name = Player.Name,
+            PlayerIndex = Player.Index,
             Color = [255, 255, 255]
         });
 #pragma warning restore CS8602

@@ -1,4 +1,5 @@
 using Vortex.Bot.Attributes;
+using Vortex.Bot.Database.Models;
 
 namespace Vortex.Bot.Command.Verification;
 
@@ -10,8 +11,20 @@ namespace Vortex.Bot.Command.Verification;
 public static class IntegratedTransferCommand
 {
     [Main]
-    public static async Task Execute(GroupCommandArgs args, long targetUser, int amount)
+    public static async Task Execute(GroupCommandArgs args, long targetUser, long amount)
     {
+        if (targetUser == args.SenderUin)
+        {
+            await args.ReplyWithAtAsync("不能给自己转账。");
+            return;
+        }
+
+        if (amount <= 0)
+        {
+            await args.ReplyWithAtAsync("转账金额必须大于 0。");
+            return;
+        }
+
         if (args.GetPendingVerification("transfer") != null)
         {
             await args.ReplyWithAtAsync("您已有待确认的转账操作，请发送 /确认转账 或 /取消转账");
@@ -22,13 +35,14 @@ public static class IntegratedTransferCommand
             actionType: "transfer",
             actionName: "转账",
             timeoutSeconds: 60,
-            data: new { TargetUser = targetUser, Amount = amount }
+            data: new TransferVerificationData(targetUser, amount)
         );
 
+        var currencyName = args.Context.Configuration.Miscellaneous.CurrencyName;
         await args.ReplyWithAtAsync(
-            $"💰 转账确认\n" +
+            $"转账确认\n" +
             $"目标用户: {targetUser}\n" +
-            $"金额: {amount} 金币\n" +
+            $"金额: {amount} {currencyName}\n" +
             $"请在60秒内发送 /确认转账 确认，或发送 /取消转账 取消。"
         );
 
@@ -49,13 +63,26 @@ public static class IntegratedConfirmTransferCommand
     {
         var result = args.Verify("transfer");
 
-        if (result.Success && result.Verification?.Data != null)
+        if (result.Success && result.Verification?.Data is TransferVerificationData data)
         {
-            dynamic data = result.Verification.Data;
-            await args.ReplyWithAtAsync(
-                $"✅ {result.Message}!\n" +
-                $"已向 {data.TargetUser} 转账 {data.Amount} 金币"
-            );
+            try
+            {
+                Currency.Transfer(args.SenderUin, data.TargetUser, data.Amount);
+                var currencyName = args.Context.Configuration.Miscellaneous.CurrencyName;
+                var senderBalance = Currency.GetBalance(args.SenderUin);
+                var targetBalance = Currency.GetBalance(data.TargetUser);
+
+                await args.ReplyWithAtAsync(
+                    $"{result.Message}!\n" +
+                    $"已向 {data.TargetUser} 转账 {data.Amount} {currencyName}\n" +
+                    $"你的余额：{senderBalance} {currencyName}\n" +
+                    $"对方余额：{targetBalance} {currencyName}"
+                );
+            }
+            catch (Exception ex)
+            {
+                await args.ReplyWithAtAsync($"转账失败：{ex.Message}");
+            }
         }
         else
         {
@@ -63,6 +90,8 @@ public static class IntegratedConfirmTransferCommand
         }
     }
 }
+
+internal sealed record TransferVerificationData(long TargetUser, long Amount);
 
 [Command("取消转账", "canceltransfer")]
 [HelpText("取消转账操作")]

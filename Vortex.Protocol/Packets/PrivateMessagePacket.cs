@@ -11,6 +11,7 @@ public class PrivateMessagePacket : IServicePacket
     public string Text { get; set; } = string.Empty;
     public byte[] Color { get; set; } = Array.Empty<byte>();
     public string Name { get; set; } = string.Empty;
+    public int PlayerIndex { get; set; } = -1;
 }
 
 public class PrivateMessagePacketResponse : IClientPacket

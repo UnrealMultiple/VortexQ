@@ -7,6 +7,7 @@ using Vortex.Bot.Configuration;
 using Vortex.Bot.Core.Service;
 using Vortex.Bot.Database;
 using Vortex.Bot.Models;
+using Vortex.Bot.Plugins;
 using Vortex.Bot.Utility;
 
 namespace Vortex.Bot;
@@ -16,7 +17,8 @@ public partial class VortexContext(
     IDatabaseService database,
     CommandManager commandManager,
     IOptions<CoreConfiguration> configuration,
-    ILogger<VortexContext> logger) : IHostedService
+    ILogger<VortexContext> logger,
+    PluginManager pluginManager) : IHostedService
 {
     private readonly ILogger<VortexContext> _logger = logger;
     public BotContext BotContext { get; } = botContext;
@@ -24,6 +26,7 @@ public partial class VortexContext(
     public CommandManager CommandManager { get; } = commandManager;
     public ILogger<VortexContext> Logger => _logger;
     public CoreConfiguration Configuration { get; } = configuration.Value;
+    public PluginManager PluginManager { get; } = pluginManager;
     public SystemMonitor SystemMonitor { get; private set; } = null!;
 
     public VortexSocketService? Server { get; set; }
