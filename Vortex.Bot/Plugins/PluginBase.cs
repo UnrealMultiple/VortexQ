@@ -65,11 +65,9 @@ public abstract class PluginBase : IPlugin
 
         foreach (var type in configTypes)
         {
-            Console.WriteLine(type);
             try
             {
                 var loadMethod = type.GetMethod("Load", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy);
-                Console.WriteLine(loadMethod == null);
                 var fileName = loadMethod?.Invoke(null, null) as string;
                 Logger.LogConfigLoaded(Name, fileName ?? type.Name);
             }
