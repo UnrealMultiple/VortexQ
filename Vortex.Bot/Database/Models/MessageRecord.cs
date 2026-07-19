@@ -1,12 +1,14 @@
+using Lagrange.Core.Message;
 using LinqToDB;
 using LinqToDB.Mapping;
+using Vortex.Bot.Utility;
 
 namespace Vortex.Bot.Database.Models;
 
 [Table("MessageRecord")]
 public class MessageRecord
 {
-    [PrimaryKey]
+    [PrimaryKey, Identity]
     public int Id { get; set; }
 
     [Column(nameof(TypeInt))]
@@ -38,6 +40,11 @@ public class MessageRecord
     {
         return RecordBase.GetContext<MessageRecord>("MessageRecord")
             .Records.FirstOrDefault(x => (ulong)x.MessageIdLong == messageId);
+    }
+
+    public MessageChain? DeserializeEntities()
+    {
+        return MessageChainSerializer.Deserialize(Entities);
     }
 
     public static void Insert(MessageRecord record)

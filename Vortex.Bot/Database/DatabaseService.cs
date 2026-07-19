@@ -67,7 +67,7 @@ public class DataContext<T> : DataConnection, IDataContext<T> where T : class, n
 
     int IDataContext<T>.Insert(T entity)
     {
-        return this.Insert(entity);
+        return Convert.ToInt32(this.InsertWithIdentity(entity));
     }
 
     int IDataContext<T>.Update(T entity)

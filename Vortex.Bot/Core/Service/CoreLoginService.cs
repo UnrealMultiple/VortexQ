@@ -1,5 +1,6 @@
 using Lagrange.Core;
 using Lagrange.Core.Common;
+using Lagrange.Core.Common.Entity;
 using Lagrange.Core.Common.Interface;
 using Lagrange.Core.Events.EventArgs;
 using Lagrange.Core.Message;
@@ -8,9 +9,11 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using Vortex.Bot.Command;
 using Vortex.Bot.Configuration;
+using Vortex.Bot.Database.Models;
 using Vortex.Bot.Extension;
 using Vortex.Bot.Interface;
 using Vortex.Bot.Utility;
@@ -68,72 +71,41 @@ public class CoreLoginService(ILogger<CoreLoginService> logger, IOptions<CoreCon
     private async Task CommandGroupAdapter(BotContext ctx, BotMessageEvent e)
     {
         var text = BuildCommandText(e.Message.Entities);
+        RecordMessage(e);
         await _cmd.ExecuteGroupAsync(text, e, _vortexContext);
+    }
+
+    private void RecordMessage(BotMessageEvent e)
+    {
+        var msg = e.Message;
+        long fromUin = msg.Contact.Uin;
+        long toUin = msg.Type switch
+        {
+            Lagrange.Core.Message.MessageType.Group when msg.Contact is BotGroupMember member => member.Group.GroupUin,
+            _ => msg.Receiver.Uin
+        };
+
+        MessageRecord.Insert(new MessageRecord()
+        {
+            TypeInt = (int)msg.Type,
+            SequenceLong = (long)msg.Sequence,
+            ClientSequenceLong = (long)msg.ClientSequence,
+            MessageIdLong = (long)msg.MessageId,
+            Time = msg.Time,
+            FromUinLong = fromUin,
+            ToUinLong = toUin,
+            Entities = MessageChainSerializer.SerializeToUtf8Bytes(msg.Entities)
+        });
     }
 
     private async Task CommandPrivateAdapter(BotContext ctx, BotMessageEvent e)
     {
         var text = BuildCommandText(e.Message.Entities);
+        RecordMessage(e);
         await _cmd.ExecutePrivateAsync(text, e, _vortexContext);
     }
 
-    private static string BuildCommandText(MessageChain entities)
-    {
-        var builder = new StringBuilder();
-
-        foreach (var entity in entities)
-        {
-            if (entity is TextEntity text)
-            {
-                builder.Append(text.Text);
-                continue;
-            }
-
-            // Mentions are structured entities, so preserve their QQ number as a normal argument.
-            if (entity.GetType().Name == "MentionEntity" && TryGetMentionUin(entity, out var uin))
-            {
-                if (builder.Length > 0 && !char.IsWhiteSpace(builder[^1]))
-                    builder.Append(' ');
-
-                builder.Append(uin);
-                builder.Append(' ');
-            }
-        }
-
-        return builder.ToString();
-    }
-
-    private static bool TryGetMentionUin(object entity, out long uin)
-    {
-        foreach (var propertyName in new[] { "Uin", "TargetUin", "Target", "UserId", "Id" })
-        {
-            var value = entity.GetType().GetProperty(propertyName)?.GetValue(entity);
-            if (value == null)
-                continue;
-
-            if (value is string text)
-            {
-                if (long.TryParse(text, out uin) && uin > 0)
-                    return true;
-
-                continue;
-            }
-
-            try
-            {
-                uin = Convert.ToInt64(value);
-                if (uin > 0)
-                    return true;
-            }
-            catch (Exception)
-            {
-                // The entity has a non-numeric property with this name; try the next known shape.
-            }
-        }
-
-        uin = 0;
-        return false;
-    }
+    private static string BuildCommandText(MessageChain entities) => entities.GetEnitys<TextEntity>().ToJoinedString(x => x.Text, "");
 
     private void HandleNewDeviceVerify(BotContext _, BotNewDeviceVerifyEvent @event)
     {
