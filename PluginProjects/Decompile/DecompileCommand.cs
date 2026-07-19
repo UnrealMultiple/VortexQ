@@ -26,7 +26,7 @@ public static class DecompileCommand
                 var buffer = await HttpUtility.GetByteAsync(url);
                 await args.ReplyAsync($"反编译前准备，文件下载完成：{url}");
                 using var decompiler = new DllDecompiler();
-                var zipBytes = decompiler.LoadDecompileAndZip(buffer);
+                var zipBytes = decompiler.LoadAndDecompile(buffer);
                 if (zipBytes == null)
                 {
                     await args.ReplyAsync($"反编译失败:{decompiler.LastError?.Message}");

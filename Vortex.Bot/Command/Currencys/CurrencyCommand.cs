@@ -1,5 +1,7 @@
+using Lagrange.Core.Message.Entities;
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Database.Models;
+using Vortex.Bot.Extension;
 using Vortex.Bot.Utility.Images;
 
 namespace Vortex.Bot.Command.Currencys;
@@ -40,8 +42,20 @@ public static class CurrencyCommand
     public static class AddCmd
     {
         [Main]
-        public static async Task Execute(CommandArgs args, [Param("QQ号")] long userId, [Param("数量")] long amount)
+        [Flexible]
+        public static async Task Execute(CommandArgs args, [Param("QQ号|@|数量")] long num, [Param("数量")] long amount = 0)
         {
+            long userId;
+            var mention = args.Message?.Entities.GetEnitys<MentionEntity>().FirstOrDefault();
+            if (mention == null)
+            {
+                userId = num;
+            }
+            else
+            {
+                userId = mention.Uin;
+                amount = num;
+            }
             var currencyName = args.Context.Configuration.Miscellaneous.CurrencyName;
             try
             {
@@ -61,8 +75,20 @@ public static class CurrencyCommand
     public static class DeductCmd
     {
         [Main]
-        public static async Task Execute(CommandArgs args, [Param("QQ号")] long userId, [Param("数量")] long amount)
+        [Flexible]
+        public static async Task Execute(CommandArgs args, [Param("QQ号|@|数量")] long num, [Param("数量")] long amount = 0)
         {
+            long userId;
+            var mention = args.Message?.Entities.GetEnitys<MentionEntity>().FirstOrDefault();
+            if(mention == null)
+            {
+                userId = num;
+            }
+            else
+            {
+                userId = mention.Uin;
+                amount = num;
+            }
             var currencyName = args.Context.Configuration.Miscellaneous.CurrencyName;
             try
             {
@@ -82,8 +108,21 @@ public static class CurrencyCommand
     public static class SetCmd
     {
         [Main]
-        public static async Task Execute(CommandArgs args, [Param("QQ号")] long userId, [Param("数量")] long amount)
+        [Flexible]
+        public static async Task Execute(CommandArgs args, [Param("QQ号|@|数量")] long num, [Param("数量")] long amount = 0)
         {
+            long userId;
+            var mention = args.Message?.Entities.GetEnitys<MentionEntity>().FirstOrDefault();
+            if (mention == null)
+            {
+                userId = num;
+            }
+            else
+            {
+                userId = mention.Uin;
+                amount = num;
+            }
+
             var currencyName = args.Context.Configuration.Miscellaneous.CurrencyName;
             try
             {
@@ -135,8 +174,20 @@ public static class CurrencyCommand
     public static class TransferCmd
     {
         [Main]
-        public static async Task Execute(CommandArgs args, [Param("目标QQ")] long targetUserId, [Param("数量")] long amount)
+        [Flexible]
+        public static async Task Execute(CommandArgs args, [Param("QQ号|@|数量")] long num, [Param("数量")] long amount = 0)
         {
+            long targetUserId;
+            var mention = args.Message?.Entities.GetEnitys<MentionEntity>().FirstOrDefault();
+            if (mention == null)
+            {
+                targetUserId = num;
+            }
+            else
+            {
+                targetUserId = mention.Uin;
+                amount = num;
+            }
             var currencyName = args.Context.Configuration.Miscellaneous.CurrencyName;
             if (targetUserId == args.SenderUin)
             {

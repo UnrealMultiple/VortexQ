@@ -3,6 +3,7 @@ using ICSharpCode.Decompiler.CSharp;
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
 using System.IO.Compression;
+using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -24,27 +25,6 @@ public class DllDecompiler : IDisposable
     #endregion
 
     #region 加载方法
-    public bool LoadFromFile(string filePath)
-    {
-        try
-        {
-            byte[] buffer = File.ReadAllBytes(filePath);
-            using var stream = new MemoryStream(buffer);
-            _peFile = new PEFile(
-                filePath,
-                stream,
-                PEStreamOptions.PrefetchMetadata | PEStreamOptions.PrefetchEntireImage
-            );
-            InitializeResolver(filePath);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            LastError = ex;
-            return false;
-        }
-    }
-
     public bool LoadFromBuffer(byte[] buffer, string virtualName = "MemoryAssembly.dll")
     {
         try
@@ -98,7 +78,7 @@ public class DllDecompiler : IDisposable
     #endregion
 
     #region ZIP 导出
-    public byte[] ExportToZip(string archiveName = "Decompiled")
+    public byte[] ExportToZip(string archiveName = "")
     {
         try
         {
@@ -125,8 +105,11 @@ public class DllDecompiler : IDisposable
         }
     }
 
-    public byte[] LoadDecompileAndZip(byte[] assemblyBytes, string virtualName = "MemoryAssembly.dll", string archiveName = "Decompiled")
+    public byte[] LoadDecompileAndZip(byte[] assemblyBytes, string virtualName = "MemoryAssembly.dll", string archiveName = "")
     {
+        DecompiledFiles.Clear();
+        _processedTypes.Clear();
+
         if (!LoadFromBuffer(assemblyBytes, virtualName))
             return null;
 
@@ -134,6 +117,85 @@ public class DllDecompiler : IDisposable
             return null;
 
         return ExportToZip(archiveName);
+    }
+
+    public byte[] LoadAndDecompile(byte[] bytes, string virtualName = "MemoryAssembly.dll", string archiveName = "")
+    {
+        DecompiledFiles.Clear();
+        _processedTypes.Clear();
+
+        if (IsZipArchive(bytes))
+            return ProcessZipInMemory(bytes, archiveName);
+
+        if (!LoadFromBuffer(bytes, virtualName))
+            return null;
+
+        if (!DecompileAll())
+            return null;
+
+        return ExportToZip(archiveName);
+    }
+
+    private static bool IsZipArchive(byte[] data)
+    {
+        return data.Length >= 4 &&
+               data[0] == 0x50 &&
+               data[1] == 0x4B &&
+               data[2] == 0x03 &&
+               data[3] == 0x04;
+    }
+
+    /// <summary>
+    /// 从内存中的压缩包读取所有可反编译的程序集，逐个反编译后合并返回一个新的压缩包。
+    /// </summary>
+    public byte[] ProcessZipInMemory(byte[] zipBytes, string archiveName = "")
+    {
+        try
+        {
+            DecompiledFiles.Clear();
+            _processedTypes.Clear();
+
+            using var inputZip = new ZipArchive(new MemoryStream(zipBytes), ZipArchiveMode.Read);
+
+            foreach (var entry in inputZip.Entries)
+            {
+                if (!IsDecompilableFile(entry.Name))
+                    continue;
+
+                // 从压缩包中读取程序集字节
+                byte[] assemblyBytes;
+                using (var entryStream = entry.Open())
+                using (var ms = new MemoryStream())
+                {
+                    entryStream.CopyTo(ms);
+                    assemblyBytes = ms.ToArray();
+                }
+
+                // 每个程序集独立加载和反编译
+                Dispose();
+                if (!LoadFromBuffer(assemblyBytes, entry.FullName))
+                    continue;
+
+                DecompileAll();
+
+                // 为当前程序集生成 .csproj 文件
+                var asmName = GetAssemblyName();
+                if (asmName != null)
+                {
+                    var sanitizedAsm = SanitizeAssemblyName(asmName);
+                    var csprojKey = $"{sanitizedAsm}/{asmName}.csproj";
+                    if (!DecompiledFiles.ContainsKey(csprojKey))
+                        DecompiledFiles[csprojKey] = GenerateCsproj(asmName);
+                }
+            }
+
+            return ExportToZip(archiveName);
+        }
+        catch (Exception ex)
+        {
+            LastError = ex;
+            return null;
+        }
     }
     #endregion
 
@@ -151,14 +213,15 @@ public class DllDecompiler : IDisposable
         {
             var fileName = GenerateFileName(typeDef);
 
-            // 处理文件名冲突（特别是泛型类型）
+            // 处理文件名冲突（特别是泛型类型），始终使用 / 分隔符
             if (DecompiledFiles.ContainsKey(fileName))
             {
                 var guidPart = Guid.NewGuid().ToString("N")[..4];
-                fileName = Path.Combine(
-                    Path.GetDirectoryName(fileName),
-                    $"{Path.GetFileNameWithoutExtension(fileName)}_{guidPart}.cs"
-                );
+                var dir = GetDirectoryName(fileName);
+                var nameWithoutExt = GetFileNameWithoutExtension(fileName);
+                fileName = string.IsNullOrEmpty(dir)
+                    ? $"{nameWithoutExt}_{guidPart}.cs"
+                    : $"{dir}/{nameWithoutExt}_{guidPart}.cs";
             }
 
             var code = GenerateCode(typeDef);
@@ -175,13 +238,36 @@ public class DllDecompiler : IDisposable
     {
         var pathComponents = new List<string>();
 
-        // 处理命名空间
-        if (!string.IsNullOrEmpty(typeDef.Namespace))
+        // 程序集名称作为顶级目录，保留点号
+        var assemblyName = GetAssemblyName();
+        if (assemblyName != null)
+            pathComponents.Add(SanitizeAssemblyName(assemblyName));
+        else
+            pathComponents.Add("UnknownAssembly");
+
+        // 命名空间去掉程序集名前缀，避免目录重复，然后按点号拆分
+        var ns = typeDef.Namespace ?? "";
+        if (!string.IsNullOrEmpty(ns) && assemblyName != null)
         {
-            pathComponents.AddRange(
-                typeDef.Namespace.Split('.')
-                    .Select(SanitizeFileName)
-            );
+            if (ns == assemblyName)
+            {
+                // 命名空间等于程序集名，不加额外目录
+            }
+            else if (ns.StartsWith(assemblyName + "."))
+            {
+                // 命名空间以程序集名开头，去掉前缀部分
+                ns = ns[(assemblyName.Length + 1)..];
+                pathComponents.AddRange(ns.Split('.').Select(SanitizeFileName));
+            }
+            else
+            {
+                // 无关的命名空间，完整拆分
+                pathComponents.AddRange(ns.Split('.').Select(SanitizeFileName));
+            }
+        }
+        else if (!string.IsNullOrEmpty(ns))
+        {
+            pathComponents.AddRange(ns.Split('.').Select(SanitizeFileName));
         }
         else
         {
@@ -199,8 +285,8 @@ public class DllDecompiler : IDisposable
 
         pathComponents.AddRange(typeHierarchy);
 
-        // 构建完整路径
-        var fileName = Path.Combine(pathComponents.ToArray()) + ".cs";
+        // 构建完整路径，始终使用 / 分隔符确保跨平台兼容
+        var fileName = string.Join("/", pathComponents) + ".cs";
         return fileName;
     }
 
@@ -246,6 +332,85 @@ public class DllDecompiler : IDisposable
         // 处理保留名称
         return string.IsNullOrEmpty(cleaned) ? "UnnamedType" : cleaned;
     }
+
+    /// <summary>清理程序集名称，只替换真正不允许的字符，保留点号。</summary>
+    private static string SanitizeAssemblyName(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return "Unknown";
+
+        var sb = new StringBuilder();
+        foreach (char c in name)
+        {
+            sb.Append(c switch
+            {
+                '<' or '>' or ':' or '"' or '/' or '\\' or '|' or '?' or '*' => "_",
+                _ => c
+            });
+        }
+
+        var cleaned = sb.ToString().Trim('.', ' ');
+        return string.IsNullOrEmpty(cleaned) ? "Unknown" : cleaned;
+    }
+
+    private static bool IsDecompilableFile(string fileName)
+    {
+        var ext = Path.GetExtension(fileName)?.ToLowerInvariant();
+        return ext is ".dll" or ".exe";
+    }
+
+    private string GenerateCsproj(string assemblyName)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(@"<Project Sdk=""Microsoft.NET.Sdk"">");
+        sb.AppendLine("  <PropertyGroup>");
+        sb.AppendLine("    <TargetFramework>netstandard2.0</TargetFramework>");
+        sb.AppendLine($"    <AssemblyName>{assemblyName}</AssemblyName>");
+        sb.AppendLine("  </PropertyGroup>");
+
+        // 从 PE 元数据读取程序集引用，生成 <Reference> 项
+        try
+        {
+            if (_peFile?.Reader != null)
+            {
+                var metadataReader = _peFile.Reader.GetMetadataReader();
+                var hasRefs = false;
+                foreach (var handle in metadataReader.AssemblyReferences)
+                {
+                    var reference = metadataReader.GetAssemblyReference(handle);
+                    if (!hasRefs)
+                    {
+                        sb.AppendLine("  <ItemGroup>");
+                        hasRefs = true;
+                    }
+                    var refName = metadataReader.GetString(reference.Name);
+                    sb.AppendLine($"    <Reference Include=\"{refName}\" />");
+                }
+                if (hasRefs)
+                    sb.AppendLine("  </ItemGroup>");
+            }
+        }
+        catch { }
+
+        sb.AppendLine("</Project>");
+        return sb.ToString();
+    }
+
+    /// <summary>获取 / 分隔路径的目录部分，跨平台兼容。</summary>
+    private static string GetDirectoryName(string path)
+    {
+        var lastSlash = path.LastIndexOf('/');
+        return lastSlash >= 0 ? path[..lastSlash] : "";
+    }
+
+    /// <summary>获取 / 分隔路径的不含扩展名的文件名，跨平台兼容。</summary>
+    private static string GetFileNameWithoutExtension(string path)
+    {
+        var lastSlash = path.LastIndexOf('/');
+        var fileName = lastSlash >= 0 ? path[(lastSlash + 1)..] : path;
+        var lastDot = fileName.LastIndexOf('.');
+        return lastDot >= 0 ? fileName[..lastDot] : fileName;
+    }
     #endregion
 
     #region 初始化与依赖管理
@@ -274,6 +439,23 @@ public class DllDecompiler : IDisposable
     {
         if (Directory.Exists(directory))
             _resolver?.AddSearchDirectory(directory);
+    }
+
+    /// <summary>从 PE 元数据中读取程序集真实名称，不依赖文件名。</summary>
+    private string GetAssemblyName()
+    {
+        try
+        {
+            if (_peFile?.Reader == null)
+                return null;
+            var metadataReader = _peFile.Reader.GetMetadataReader();
+            var def = metadataReader.GetAssemblyDefinition();
+            return metadataReader.GetString(def.Name);
+        }
+        catch
+        {
+            return null;
+        }
     }
     #endregion
 

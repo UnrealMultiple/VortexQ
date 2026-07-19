@@ -34,7 +34,7 @@ public static class HttpUtility
 
     public static async Task<string> PostAsync(string url, Dictionary<string, string>? args = null, CancellationToken cancellationToken = default)
     {
-        var form = new FormUrlEncodedContent(args ?? new Dictionary<string, string>());
+        var form = new FormUrlEncodedContent(args ?? []);
         var content = await HttpClient.PostAsync(url, form, cancellationToken);
         return await content.Content.ReadAsStringAsync(cancellationToken);
     }
