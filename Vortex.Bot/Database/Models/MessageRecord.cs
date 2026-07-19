@@ -15,13 +15,13 @@ public class MessageRecord
     public int TypeInt { get; set; }
 
     [Column(nameof(SequenceLong))]
-    public long SequenceLong { get; set; }
+    public ulong SequenceLong { get; set; }
 
     [Column(nameof(ClientSequenceLong))]
-    public long ClientSequenceLong { get; set; }
+    public ulong ClientSequenceLong { get; set; }
 
     [Column(nameof(MessageIdLong))]
-    public long MessageIdLong { get; set; }
+    public ulong MessageIdLong { get; set; }
 
     public DateTimeOffset Time { get; set; }
 
@@ -36,10 +36,11 @@ public class MessageRecord
 
     #region 静态方法
 
-    public static MessageRecord? Query(ulong messageId)
+    public static MessageChain? Query(ulong messageId)
     {
         return RecordBase.GetContext<MessageRecord>("MessageRecord")
-            .Records.FirstOrDefault(x => (ulong)x.MessageIdLong == messageId);
+            .Records.FirstOrDefault(x => x.MessageIdLong == messageId)?
+            .DeserializeEntities();
     }
 
     public MessageChain? DeserializeEntities()

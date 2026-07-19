@@ -88,9 +88,9 @@ public class CoreLoginService(ILogger<CoreLoginService> logger, IOptions<CoreCon
         MessageRecord.Insert(new MessageRecord()
         {
             TypeInt = (int)msg.Type,
-            SequenceLong = (long)msg.Sequence,
-            ClientSequenceLong = (long)msg.ClientSequence,
-            MessageIdLong = (long)msg.MessageId,
+            SequenceLong = msg.Sequence,
+            ClientSequenceLong = msg.ClientSequence,
+            MessageIdLong = msg.MessageId,
             Time = msg.Time,
             FromUinLong = fromUin,
             ToUinLong = toUin,

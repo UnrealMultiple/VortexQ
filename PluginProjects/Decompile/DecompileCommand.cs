@@ -18,7 +18,7 @@ public static class DecompileCommand
     {
         if (args.Message?.Entities.GetEnitys<ReplyEntity>().FirstOrDefault() is ReplyEntity entity)
         {
-            var file = MessageRecord.Query(entity.SrcUid)?.DeserializeEntities()?.GetEnitys<GroupFileEntity>().FirstOrDefault();
+            var file = MessageRecord.Query(entity.SrcUid)?.GetEnitys<GroupFileEntity>().FirstOrDefault();
             if(file != null)
             {
                 await args.ReplyAsync($"正在获取{file.FileName}文件链接……");
