@@ -1,8 +1,5 @@
 ﻿using Lagrange.Core.Common.Interface;
 using Lagrange.Core.Message.Entities;
-using MimeKit;
-using System.Data.SqlTypes;
-using System.Text;
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Command;
 using Vortex.Bot.Database.Models;
@@ -24,7 +21,7 @@ public static class DecompileCommand
             var file = MessageRecord.Query(entity.SrcUid)?.DeserializeEntities()?.GetEnitys<GroupFileEntity>().FirstOrDefault();
             if(file != null)
             {
-                await args.ReplyAsync($"正在获取{file.FileName}文件连接……");
+                await args.ReplyAsync($"正在获取{file.FileName}文件链接……");
                 var url = await args.BotContext.GroupFSDownload(args.GroupUin, file.FileId);
                 var buffer = await HttpUtility.GetByteAsync(url);
                 await args.ReplyAsync($"反编译前准备，文件下载完成：{url}");

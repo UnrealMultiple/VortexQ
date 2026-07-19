@@ -98,10 +98,6 @@ public class DllDecompiler : IDisposable
     #endregion
 
     #region ZIP 导出
-    /// <summary>
-    /// 将反编译结果导出为 ZIP 字节数组，全程在内存中完成，不写磁盘。
-    /// </summary>
-    /// <param name="archiveName">ZIP 内根目录名，默认 "Decompiled"</param>
     public byte[] ExportToZip(string archiveName = "Decompiled")
     {
         try
@@ -129,13 +125,6 @@ public class DllDecompiler : IDisposable
         }
     }
 
-    /// <summary>
-    /// 一键完成：从 byte[] 加载 → 反编译 → 导出 ZIP，全程无磁盘 IO。
-    /// </summary>
-    /// <param name="assemblyBytes">程序集字节数据</param>
-    /// <param name="virtualName">虚拟文件名</param>
-    /// <param name="archiveName">ZIP 内根目录名</param>
-    /// <returns>ZIP 字节数组，失败返回 null 并可通过 LastError 查看原因</returns>
     public byte[] LoadDecompileAndZip(byte[] assemblyBytes, string virtualName = "MemoryAssembly.dll", string archiveName = "Decompiled")
     {
         if (!LoadFromBuffer(assemblyBytes, virtualName))
