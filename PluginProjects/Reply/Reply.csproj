@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Reply</AssemblyName>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Vortex.Bot\Vortex.Bot.csproj" Private="false" />
+  </ItemGroup>
+  <Target Name="KeepPluginOutputMinimal" AfterTargets="Build">
+    <ItemGroup>
+      <PluginDependencyFiles Include="$(OutputPath)*.dll" Exclude="$(OutputPath)Reply.dll" />
+      <PluginDependencyFiles Include="$(OutputPath)*.pdb" Exclude="$(OutputPath)Reply.pdb" />
+      <PluginDependencyFiles Include="$(OutputPath)*.deps.json" />
+      <PluginDependencyFiles Include="$(OutputPath)*.exe" />
+      <PluginDependencyFiles Include="$(OutputPath)*.runtimeconfig.json" />
+    </ItemGroup>
+    <Delete Files="@(PluginDependencyFiles)" />
+    <RemoveDir Directories="$(OutputPath)Config;$(OutputPath)Resources" />
+  </Target>
+</Project>
