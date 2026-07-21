@@ -1,17 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Vortex.Bot\Vortex.Bot.csproj" />
-	  <PackageReference Include="ICSharpCode.Decompiler" Version="9.0.0.7889" />
-	  <PackageReference Include="SharpCompress" Version="0.40.0" />
-  </ItemGroup>
-
-	
-
+<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="..\template.targets" />
+    <ItemGroup>
+        <PackageReference Include="ICSharpCode.Decompiler" Version="10.1.1.8388" />
+        <PackageReference Include="SharpCompress" Version="0.50.0" />
+    </ItemGroup>
+	<PropertyGroup>
+		<PackNames>SharpCompress.dll;ICSharpCode.Decompiler.dll</PackNames>
+	</PropertyGroup>
 </Project>

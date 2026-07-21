@@ -1,0 +1,55 @@
+<Project>
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <OutputPath>..\..\out\$(MSBuildProjectName)</OutputPath>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Vortex.Bot\Vortex.Bot.csproj" Private="false" />
+    </ItemGroup>
+
+    <PropertyGroup>
+        <PluginCleanDirectories>$(OutputPath)Resources</PluginCleanDirectories>
+    </PropertyGroup>
+
+    <Target Name="KeepPluginOutputMinimal" AfterTargets="Build">
+        <ItemGroup>
+            <PluginDependencyFiles Include="$(OutputPath)*.dll" Exclude="$(OutputPath)$(AssemblyName).dll" />
+            <PluginDependencyFiles Include="$(OutputPath)*.pdb" />
+            <PluginDependencyFiles Include="$(OutputPath)*.deps.json" />
+            <PluginDependencyFiles Include="$(OutputPath)*.exe" />
+            <PluginDependencyFiles Include="$(OutputPath)*.runtimeconfig.json" />
+        </ItemGroup>
+        <Delete Files="@(PluginDependencyFiles)" />
+        <RemoveDir Directories="$(PluginCleanDirectories)" />
+    </Target>
+
+    <Target Name="CopySpecificNuGetDlls" AfterTargets="Build" Condition="'$(PackNames)' != ''">
+        <ItemGroup>
+            <AllAssemblies Include="@(ReferencePath)" />
+            <SpecificNuGetDlls Include="@(AllAssemblies)"
+                         Condition="$([System.String]::new(';$(PackNames);').Contains(';%(Filename)%(Extension);'))" />
+        </ItemGroup>
+        <Message Text="Specific NuGet DLLs to copy: @(SpecificNuGetDlls)" Importance="high" />
+        <Copy SourceFiles="@(SpecificNuGetDlls)" DestinationFolder="$(OutputPath)" />
+    </Target>
+
+    <Target Name="githash" BeforeTargets="PreBuildEvent">
+        <Exec Command="git log -1 --pretty=&quot;format:%25H&quot;" ContinueOnError="true" ConsoleToMSBuild="true">
+            <Output TaskParameter="ConsoleOutput" PropertyName="CommitHashValue"/>
+        </Exec>
+        <ItemGroup>
+            <AssemblyAttribute Include="System.Reflection.AssemblyInformationalVersionAttribute">
+                <_Parameter1>$(CommitHashValue)</_Parameter1>
+            </AssemblyAttribute>
+        </ItemGroup>
+    </Target>
+</Project>
