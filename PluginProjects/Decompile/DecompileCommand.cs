@@ -24,7 +24,6 @@ public static class DecompileCommand
                 await args.ReplyAsync($"正在获取{file.FileName}文件链接……");
                 var url = await args.BotContext.GroupFSDownload(args.GroupUin, file.FileId);
                 var buffer = await HttpUtility.GetByteAsync(url);
-                await args.ReplyAsync($"反编译前准备，文件下载完成：{url}");
                 using var decompiler = new DllDecompiler();
                 var zipBytes = decompiler.LoadAndDecompile(buffer);
                 if (zipBytes == null)
