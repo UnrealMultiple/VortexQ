@@ -75,7 +75,7 @@ public class WebHook : WebhookEventProcessor
                 return;
             else
                 _operations.Add(record);
-            var msg = $"用户 {starEvent.Sender?.Login} {CultureInfo.InvariantCulture.TextInfo.ToTitleCase(action)} Start 仓库 {starEvent.Repository?.FullName} 共计({starEvent.Repository?.StargazersCount})个Star";
+            var msg = $"用户 {starEvent.Sender?.Login} {CultureInfo.InvariantCulture.TextInfo.ToTitleCase(action)} Star 仓库 {starEvent.Repository?.FullName} 共计({starEvent.Repository?.StargazersCount})个Star";
             var builder = new MessageBuilder();
             builder.Text(msg);
             await SendGroupMsg(builder.Build(), groups, BotContext);
