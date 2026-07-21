@@ -1,29 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
-    <AssemblyName>GitHook</AssemblyName>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\Vortex.Bot\Vortex.Bot.csproj" Private="false" />
-  </ItemGroup>
+	<Import Project="..\template.targets" />
   <ItemGroup>
     <PackageReference Include="Octokit" Version="14.0.0" />
     <PackageReference Include="Octokit.Webhooks" Version="3.2.1" />
     <PackageReference Include="PuppeteerSharp" Version="20.2.2" />
   </ItemGroup>
-  <Target Name="KeepPluginOutputMinimal" AfterTargets="Build">
-    <ItemGroup>
-      <PluginDependencyFiles Include="$(OutputPath)*.dll" Exclude="$(OutputPath)GitHook.dll;$(OutputPath)Octokit.dll;$(OutputPath)Octokit.Webhooks.dll;$(OutputPath)PuppeteerSharp.dll" />
-      <PluginDependencyFiles Include="$(OutputPath)*.pdb" Exclude="$(OutputPath)GitHook.pdb" />
-      <PluginDependencyFiles Include="$(OutputPath)*.deps.json" />
-      <PluginDependencyFiles Include="$(OutputPath)*.exe" />
-      <PluginDependencyFiles Include="$(OutputPath)*.runtimeconfig.json" />
-    </ItemGroup>
-    <Delete Files="@(PluginDependencyFiles)" />
-    <RemoveDir Directories="$(OutputPath)Config;$(OutputPath)Resources" />
-  </Target>
+	
+	<PropertyGroup>
+		<PackNames>Octokit.dll;Octokit.Webhooks.dll;PuppeteerSharp.dll</PackNames>
+	</PropertyGroup>
 </Project>

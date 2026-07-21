@@ -1,14 +1,16 @@
 <Solution>
+  <Folder Name="/Plugins/">
+    <Project Path="PluginProjects/Decompile/Decompile.csproj" Id="f1531202-e845-4ae2-be12-cebe8a94095c" />
+    <Project Path="PluginProjects/GitHook/GitHook.csproj" />
+    <Project Path="PluginProjects/Music/Music.csproj" />
+    <Project Path="PluginProjects/Reply/Reply.csproj" />
+    <Project Path="PluginProjects/TerrariaBridge/TerrariaBridge.csproj" />
+    <Project Path="PluginProjects/TerrariaRankBridge/TerrariaRankBridge.csproj" />
+  </Folder>
   <Project Path="LagrangeV2/Lagrange.Core/Lagrange.Core.csproj" />
   <Project Path="LagrangeV2/Lagrange.Milky/Lagrange.Milky.csproj" />
   <Project Path="LagrangeV2/Lagrange.Proto.Generator/Lagrange.Proto.Generator.csproj" />
   <Project Path="LagrangeV2/Lagrange.Proto/Lagrange.Proto.csproj" />
-  <Folder Name="/Plugins/">
-    <Project Path="PluginProjects/Decompile/Decompile.csproj" Id="f1531202-e845-4ae2-be12-cebe8a94095c" />
-    <Project Path="PluginProjects/Music/Music.csproj" />
-    <Project Path="PluginProjects/TerrariaBridge/TerrariaBridge.csproj" />
-    <Project Path="PluginProjects/TerrariaRankBridge/TerrariaRankBridge.csproj" />
-  </Folder>
   <Project Path="Vortex.Adapter/Vortex.Adapter.csproj" />
   <Project Path="Vortex.Bot/Vortex.Bot.csproj" />
   <Project Path="Vortex.Protocol/Vortex.Protocol.csproj" />
