@@ -2,8 +2,8 @@
 	<Import Project="..\template.targets" />
   <ItemGroup>
     <PackageReference Include="Octokit" Version="14.0.0" />
-    <PackageReference Include="Octokit.Webhooks" Version="3.2.1" />
-    <PackageReference Include="PuppeteerSharp" Version="20.2.2" />
+    <PackageReference Include="Octokit.Webhooks" Version="4.0.4" />
+    <PackageReference Include="PuppeteerSharp" Version="25.3.4" />
   </ItemGroup>
 	
 	<PropertyGroup>
