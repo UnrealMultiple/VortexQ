@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/Plugins/">
     <Project Path="PluginProjects/Bilibili/Bilibili.csproj" Id="5f2ae267-7e61-4efc-9bcd-565ccc2ac94a" />
+    <Project Path="PluginProjects/Daily/Daily.csproj" Id="d0d3a72a-f572-4a36-aa34-7e90061c5568" />
     <Project Path="PluginProjects/Decompile/Decompile.csproj" Id="f1531202-e845-4ae2-be12-cebe8a94095c" />
     <Project Path="PluginProjects/GitHook/GitHook.csproj" />
     <Project Path="PluginProjects/Music/Music.csproj" />

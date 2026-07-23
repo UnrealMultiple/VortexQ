@@ -48,7 +48,7 @@ public static class SelectMusic
                 await args.ReplyWithAtAsync("无法获取歌曲签名信息！");
                 return;
             }
-            await args.ReplyAsync(MessageBuilder.Create().LightApp(json).Build());;
+            await args.ReplyAsync(MessageBuilder.Create().LightApp(json).Build());
         }
         else
         {
