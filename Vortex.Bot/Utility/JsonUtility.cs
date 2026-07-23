@@ -38,6 +38,12 @@ public static partial class JsonUtility
     {
         return JsonSerializer.Deserialize(json, typeof(T), JsonContext.Default) as T;
     }
+
+    public static T? Deserialize<T>(string json) where T : class
+    {
+        return JsonSerializer.Deserialize(json, typeof (T), JsonContext.Default) as T;
+    }
+
     public static object? Deserialize(Type type, byte[] json)
     {
         return JsonSerializer.Deserialize(json, type, JsonContext.Default);

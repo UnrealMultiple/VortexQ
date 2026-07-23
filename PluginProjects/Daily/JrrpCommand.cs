@@ -1,6 +1,5 @@
 ﻿using Daily.Database;
 using Lagrange.Core.Message;
-
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Command;
 using Vortex.Bot.Extension;
@@ -8,9 +7,10 @@ using Vortex.Bot.Utility;
 
 namespace Daily;
 
-[Command("jrrp", "今日人品")]
+[Command("jrrp")]
 [CommandType(CommandType.Group)]
 [Permission("vortex.jrrp")]
+[HelpText("测一下今日运势如何")]
 public static class JrrpCommand
 {
     private static readonly Random _random = new();
@@ -35,16 +35,14 @@ public static class JrrpCommand
             { "let", $"{args.SenderUin}{jrrp}" },
         });
 
-        // 构建转发消息（MultiMsgEntity 内部会自动预处理子消息中的图片等实体）
         var nickname = args.Member?.Nickname ?? "";
         var now = DateTime.Now;
         var msg = MessageBuilder.Create().MultiMsg([
             BotMessage.CreateCustomGroup(args.GroupUin, args.SenderUin, nickname, now,
                 MessageBuilder.Create().Image(imageBuffer).Build()),
             BotMessage.CreateCustomGroup(args.GroupUin, args.SenderUin, nickname, now,
-                MessageBuilder.Create().Text($"今日人品：{jrrp}").Build())
+                MessageBuilder.Create().Text($"今日运势：{jrrp}").Build())
         ]).Build();
-        var res = await args.ReplyAsync(msg);
-        Console.WriteLine(res.Type);
+        await args.ReplyAsync(msg);
     }
 }
