@@ -1,4 +1,5 @@
 using Lagrange.Core.Message;
+using Lagrange.Core.Message.Entities;
 using Music.Models;
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Command;
@@ -48,7 +49,7 @@ public static class SelectMusic
                 await args.ReplyWithAtAsync("无法获取歌曲签名信息！");
                 return;
             }
-            await args.ReplyAsync(MessageBuilder.Create().LightApp(json).Build());
+            await args.ReplyAsync((MessageBuilder.Create().L + new LightAppEntity(json)).Build());
         }
         else
         {

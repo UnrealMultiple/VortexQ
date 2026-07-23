@@ -1,4 +1,4 @@
-﻿using Lagrange.Core.Common.Interface;
+using Lagrange.Core.Common.Interface;
 using Lagrange.Core.Message.Entities;
 using Vortex.Bot.Attributes;
 using Vortex.Bot.Command;
@@ -18,7 +18,7 @@ public static class DecompileCommand
     {
         if (args.Message?.Entities.GetEnitys<ReplyEntity>().FirstOrDefault() is ReplyEntity entity)
         {
-            var file = MessageRecord.Query(entity.SrcUid)?.GetEnitys<GroupFileEntity>().FirstOrDefault();
+            var file = MessageRecord.Query(entity.SrcSequence)?.GetEnitys<GroupFileEntity>().FirstOrDefault();
             if(file != null)
             {
                 await args.ReplyAsync($"正在获取{file.FileName}文件链接……");

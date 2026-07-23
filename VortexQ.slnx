@@ -9,10 +9,10 @@
     <Project Path="PluginProjects/TerrariaBridge/TerrariaBridge.csproj" />
     <Project Path="PluginProjects/TerrariaRankBridge/TerrariaRankBridge.csproj" />
   </Folder>
-  <Project Path="LagrangeV2/Lagrange.Core/Lagrange.Core.csproj" />
-  <Project Path="LagrangeV2/Lagrange.Milky/Lagrange.Milky.csproj" />
-  <Project Path="LagrangeV2/Lagrange.Proto.Generator/Lagrange.Proto.Generator.csproj" />
-  <Project Path="LagrangeV2/Lagrange.Proto/Lagrange.Proto.csproj" />
+  <Project Path="Lagrange.Core/Lagrange.Core/Lagrange.Core.csproj" />
+  <Project Path="Lagrange.Core/Lagrange.Milky/Lagrange.Milky.csproj" />
+  <Project Path="Lagrange.Core/Lagrange.Proto.Generator/Lagrange.Proto.Generator.csproj" />
+  <Project Path="Lagrange.Core/Lagrange.Proto/Lagrange.Proto.csproj" />
   <Project Path="Vortex.Adapter/Vortex.Adapter.csproj" />
   <Project Path="Vortex.Bot/Vortex.Bot.csproj" />
   <Project Path="Vortex.Protocol/Vortex.Protocol.csproj" />

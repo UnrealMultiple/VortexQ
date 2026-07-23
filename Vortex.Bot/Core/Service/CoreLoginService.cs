@@ -90,7 +90,7 @@ public class CoreLoginService(ILogger<CoreLoginService> logger, IOptions<CoreCon
             TypeInt = (int)msg.Type,
             SequenceLong = msg.Sequence,
             ClientSequenceLong = msg.ClientSequence,
-            MessageIdLong = msg.MessageId,
+            MessageIdLong = msg.Sequence,
             Time = msg.Time,
             FromUinLong = fromUin,
             ToUinLong = toUin,

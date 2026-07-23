@@ -47,12 +47,6 @@ public static class MessageChainSerializer
             {
                 sourceProp.ShouldSerialize = static (_, _) => false;
             }
-
-            var elemsProp = info.Properties.FirstOrDefault(p => p.Name == nameof(ReplyEntity.Elems));
-            if (elemsProp is not null)
-            {
-                elemsProp.ShouldSerialize = static (_, _) => false;
-            }
         }
     }
 
