@@ -28,7 +28,7 @@ public static class SelectMusic
                 return;
             }
 
-            var song = songs[index];
+            var song = songs[index > 0 ? index - 1 : 0];
             var playUrl = await Music.Instance.MusicService.GetPlayUrlAsync(song.Id, userSource);
             if(playUrl == null)
             {
