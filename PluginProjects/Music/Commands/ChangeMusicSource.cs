@@ -5,7 +5,7 @@ using Vortex.Bot.Command;
 namespace Music.Commands;
 
 [Command("切换音源", "source")]
-[HelpText("切换个人音乐搜索源 (qq/netease/all)")]
+[HelpText("切换个人音乐搜索源 (qq/netease/kugou/all)")]
 [CommandType(CommandType.Group)]
 public static class ChangeMusicSource
 {
@@ -27,12 +27,13 @@ public static class ChangeMusicSource
             {
                 "qq" => "QQ音乐",
                 "netease" => "网易云音乐",
+                "kugou" => "酷狗音乐",
                 _ => null
             };
 
             if (sourceName is null)
             {
-                await args.ReplyWithAtAsync("不支持的音源，请使用 qq / netease");
+                await args.ReplyWithAtAsync("不支持的音源，请使用 qq / netease / kugou");
                 return;
             }
 

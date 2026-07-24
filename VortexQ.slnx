@@ -4,6 +4,7 @@
     <Project Path="PluginProjects/Daily/Daily.csproj" Id="d0d3a72a-f572-4a36-aa34-7e90061c5568" />
     <Project Path="PluginProjects/Decompile/Decompile.csproj" Id="f1531202-e845-4ae2-be12-cebe8a94095c" />
     <Project Path="PluginProjects/GitHook/GitHook.csproj" />
+    <Project Path="PluginProjects/KuGou.Net/KuGou.Net.csproj" />
     <Project Path="PluginProjects/Music/Music.csproj" />
     <Project Path="PluginProjects/Reply/Reply.csproj" />
     <Project Path="PluginProjects/TerrariaBridge/TerrariaBridge.csproj" />

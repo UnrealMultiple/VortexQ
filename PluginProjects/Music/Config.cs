@@ -1,5 +1,6 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using Music.Kugou;
 using Music.Models;
 using Music.QQ.Internal.MusicToken;
 using Vortex.Bot.Configuration;
@@ -13,8 +14,11 @@ public class Config : JsonConfigBase<Config>
     [JsonPropertyName("qqToken")]
     public TokenInfo? QQToken { get; set; }
 
+    [JsonPropertyName("kugouToken")]
+    public KugouToken? KugouToken { get; set; }
+
     [JsonPropertyName("defaultSource")]
-    public string DefaultSource { get; set; } = "all";
+    public string DefaultSource { get; set; } = "kugou";
 
     [JsonPropertyName("searchLimit")]
     public int SearchLimit { get; set; } = 10;
@@ -34,6 +38,13 @@ public class Config : JsonConfigBase<Config>
         Logger?.LogInformation("[Music] QQ音乐令牌已更新");
     }
 
+    public void SetKugouToken(KugouToken token)
+    {
+        KugouToken = token;
+        Save();
+        Logger?.LogInformation("[Music] 酷狗音乐令牌已更新");
+    }
+
     public MusicSource GetUserSource(string userId)
     {
         if (UserSources.TryGetValue(userId, out var source))
@@ -42,14 +53,16 @@ public class Config : JsonConfigBase<Config>
             {
                 "qq" => MusicSource.QQMusic,
                 "netease" => MusicSource.NetEase,
-                _ => throw new NullReferenceException()
+                "kugou" => MusicSource.Kugou,
+                _ => MusicSource.Kugou
             };
         }
         return DefaultSource.ToLower() switch
         {
             "qq" => MusicSource.QQMusic,
             "netease" => MusicSource.NetEase,
-            _ => throw new NullReferenceException()
+            "kugou" => MusicSource.Kugou,
+            _ => MusicSource.Kugou
         };
     }
 

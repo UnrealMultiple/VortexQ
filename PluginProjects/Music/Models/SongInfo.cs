@@ -22,6 +22,7 @@ public sealed record SongInfo
     {
         MusicSource.QQMusic => $"https://y.qq.com/n/yqq/song/{Id}.html",
         MusicSource.NetEase => $"https://music.163.com/song?id={Id}",
+        MusicSource.Kugou => $"https://www.kugou.com/song/#hash={Id}",
         _ => string.Empty
     };
 
@@ -33,7 +34,8 @@ public sealed record SongInfo
 public enum MusicSource
 {
     QQMusic,
-    NetEase
+    NetEase,
+    Kugou
 }
 
 public sealed record PlaylistInfo

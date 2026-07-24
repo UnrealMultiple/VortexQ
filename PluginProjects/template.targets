@@ -33,13 +33,36 @@
     </Target>
 
     <Target Name="CopySpecificNuGetDlls" AfterTargets="Build" Condition="'$(PackNames)' != ''">
+        <!-- Step 1: 从 ReferencePath 中查找目标 DLL -->
         <ItemGroup>
             <AllAssemblies Include="@(ReferencePath)" />
             <SpecificNuGetDlls Include="@(AllAssemblies)"
                          Condition="$([System.String]::new(';$(PackNames);').Contains(';%(Filename)%(Extension);'))" />
         </ItemGroup>
-        <Message Text="Specific NuGet DLLs to copy: @(SpecificNuGetDlls)" Importance="high" />
-        <Copy SourceFiles="@(SpecificNuGetDlls)" DestinationFolder="$(OutputPath)" />
+
+        <!-- Step 2: 找出未匹配的 DLL（例如分析器/源码生成器不在 ReferencePath 中） -->
+        <PropertyGroup>
+            <_PackNamesList>$(PackNames.Replace(';', '|'))</_PackNamesList>
+        </PropertyGroup>
+        <ItemGroup>
+            <_FoundDllNames Include="@(SpecificNuGetDlls->'%(Filename)%(Extension)')" />
+            <_MissingDllName Include="$(_PackNamesList.Split('|'))" Exclude="@(_FoundDllNames)" />
+        </ItemGroup>
+
+        <!-- Step 3: 从 NuGet 缓存中搜索缺失的 DLL（用于分析器/源码生成器等不在 ReferencePath 中的 DLL） -->
+        <Exec Command="for %%f in (@(_MissingDllName)) do @for /r &quot;%userprofile%\.nuget\packages&quot; %%g in (%%f) do @if exist %%g echo %%g"
+              ConsoleToMSBuild="true"
+              Condition="'@(_MissingDllName)' != ''"
+              StandardOutputImportance="low">
+            <Output TaskParameter="ConsoleOutput" ItemName="_NuGetCacheDlls" />
+        </Exec>
+
+        <!-- Step 4: 复制所有找到的 DLL -->
+        <ItemGroup>
+            <AllTargetDlls Include="@(SpecificNuGetDlls);@(_NuGetCacheDlls)" />
+        </ItemGroup>
+        <Message Text="Specific NuGet DLLs to copy: @(AllTargetDlls)" Importance="high" />
+        <Copy SourceFiles="@(AllTargetDlls)" DestinationFolder="$(OutputPath)" />
     </Target>
 
     <Target Name="githash" BeforeTargets="PreBuildEvent">

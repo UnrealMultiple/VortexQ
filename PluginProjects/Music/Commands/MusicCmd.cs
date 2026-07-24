@@ -6,7 +6,7 @@ using Vortex.Bot.Command;
 namespace Music.Commands;
 
 [Command("点歌", "music")]
-[HelpText("搜索QQ音乐和网易云音乐")]
+[HelpText("搜索歌曲（默认酷狗音乐）")]
 [CommandType(CommandType.Group)]
 public static class MusicCmd
 {
@@ -52,11 +52,11 @@ public static class MusicCmd
     private static string FormatSearchResults(IReadOnlyList<SongInfo> songs, MusicSource source)
     {
         var lines = new List<string>();
-        
         var sourceText = source switch
         {
             MusicSource.QQMusic => "[QQ音乐] ",
             MusicSource.NetEase => "[网易云] ",
+            MusicSource.Kugou => "[酷狗音乐]",
             _ => ""
         };
         
@@ -69,6 +69,7 @@ public static class MusicCmd
             {
                 MusicSource.QQMusic => "[QQ] ",
                 MusicSource.NetEase => "[网易] ",
+                MusicSource.Kugou => "[酷狗音乐]",
                 _ => ""
             };
 

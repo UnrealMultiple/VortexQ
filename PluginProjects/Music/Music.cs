@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Music.Kugou;
 using Music.Models;
 using Music.Providers;
 using Music.QQ.Internal.MusicToken;
@@ -40,6 +41,20 @@ public class Music : PluginBase
 
         var netEaseProvider = new NetEaseProvider(Logger);
         MusicService.RegisterProvider(netEaseProvider);
+
+        var kugouProvider = new KugouProvider(Logger);
+        if (kugouProvider.IsAuthenticated)
+        {
+            Logger.LogInformation("[Music] 酷狗音乐会话已恢复");
+        }
+        kugouProvider.AuthStateChanged += (_, args) =>
+        {
+            if (args.IsAuthenticated)
+            {
+                Logger.LogInformation("[Music] 酷狗音乐登录成功");
+            }
+        };
+        MusicService.RegisterProvider(kugouProvider);
 
         Logger.LogInformation("[Music] 插件初始化完成");
     }

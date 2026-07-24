@@ -1,3 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
-	<Import Project="..\template.targets" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="..\template.targets" />
+
+    <ItemGroup>
+        <ProjectReference Include="..\KuGou.Net\KuGou.Net.csproj" />
+    </ItemGroup>
+
+	<PropertyGroup>
+		<PackNames>Pure.DI.dll;Pure.DI.Core.dll;ZLinq.dll;Microsoft.Extensions.Http.dll;KuGou.Net.dll</PackNames>
+	</PropertyGroup>
 </Project>
