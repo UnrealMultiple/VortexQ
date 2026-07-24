@@ -65,15 +65,8 @@ public static class MusicCmd
         for (int i = 0; i < songs.Count; i++)
         {
             var song = songs[i];
-            var prefix = song.Source switch
-            {
-                MusicSource.QQMusic => "[QQ] ",
-                MusicSource.NetEase => "[网易] ",
-                MusicSource.Kugou => "[酷狗音乐]",
-                _ => ""
-            };
 
-            lines.Add($"{i + 1}. {prefix}{song.DisplayText}");
+            lines.Add($"{i + 1}. {song.DisplayText}");
         }
 
         return string.Join("\n", lines);
