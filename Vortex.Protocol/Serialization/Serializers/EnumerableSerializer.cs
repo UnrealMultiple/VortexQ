@@ -23,7 +23,7 @@ internal class EnumerableSerializer<T> : FieldSerializer<IEnumerable<T>>
 
         foreach (var item in value)
         {
-            elementSerializer.Write(bw, item);
+            elementSerializer.Write(bw, item!);
         }
     }
 }

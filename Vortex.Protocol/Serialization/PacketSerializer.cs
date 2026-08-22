@@ -105,7 +105,7 @@ public class PacketSerializer
         }
 
         return (
-            (bw, o) => serializer.Write(bw, prop.GetValue(o)),
+            (bw, o) => serializer.Write(bw, prop.GetValue(o)!),
             (o, br) => prop.SetValue(o, serializer.Read(br))
         );
     }

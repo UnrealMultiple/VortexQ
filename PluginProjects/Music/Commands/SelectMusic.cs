@@ -41,9 +41,22 @@ public static class SelectMusic
                 MusicSource.NetEase => "163",
                 _ => "kugou",
             };
-            
+            string? json;
+            try
+            {
+                json = await MusicSigner.Sign(new MusicSigSegment(type, song.PageUrl, playUrl, song.AlbumCover, song.Name, song.ArtistString));
+                if (json == null)
+                {
+                    await args.ReplyWithAtAsync("无法获取歌曲签名信息！");
+                    return;
+                }
 
-            var json = await MusicSigner.Sign(new MusicSigSegment(type, song.PageUrl, playUrl, song.AlbumCover, song.Name, song.ArtistString));
+            }
+            catch (Exception ex)
+            {
+                await args.ReplyWithAtAsync($"获取歌曲签名信息时发生错误: {ex.Message}");
+                return;
+            }
             if(json == null)
             {
                 await args.ReplyWithAtAsync("无法获取歌曲签名信息！");

@@ -32,7 +32,7 @@ internal class ClassSerializer<T> : FieldSerializer<T> where T : class, new()
         foreach (var (prop, serializer) in _properties)
         {
             var propValue = prop.GetValue(value);
-            serializer.Write(bw, propValue);
+            serializer.Write(bw, propValue!);
         }
     }
 }

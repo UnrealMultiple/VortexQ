@@ -180,7 +180,7 @@ public sealed class QQMusicProvider : IAuthenticatableProvider, IMusicProvider
 
     private async Task TryRefreshTokenAsync()
     {
-        if (_tokenInfo?.KeyExpiresIn < DateTimeOffset.UtcNow.ToUnixTimeSeconds() - _tokenInfo.MusickeyCreateTime)
+        if (_tokenInfo is not null && _tokenInfo.KeyExpiresIn < DateTimeOffset.UtcNow.ToUnixTimeSeconds() - _tokenInfo.MusickeyCreateTime)
         {
             await RefreshTokenAsync();
         }

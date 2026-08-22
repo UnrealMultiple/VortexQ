@@ -27,8 +27,8 @@ internal class DictionarySerializer<TKey, TValue> : FieldSerializer<IDictionary<
 
         foreach (var kvp in value)
         {
-            keySerializer.Write(bw, kvp.Key);
-            valueSerializer.Write(bw, kvp.Value);
+            keySerializer.Write(bw, kvp.Key!);
+            valueSerializer.Write(bw, kvp.Value!);
         }
     }
 }

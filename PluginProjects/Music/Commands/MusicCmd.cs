@@ -60,7 +60,7 @@ public static class MusicCmd
             _ => ""
         };
         
-        lines.Add($"{sourceText}找到 {songs.Count} 首歌曲：");
+        lines.Add($"{sourceText}为你找到 {songs.Count} 首歌曲：");
 
         for (int i = 0; i < songs.Count; i++)
         {

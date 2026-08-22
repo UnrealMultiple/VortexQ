@@ -3,6 +3,7 @@ using KuGou.Net.Infrastructure;
 using KuGou.Net.Protocol.Session;
 using Microsoft.Extensions.Logging;
 using Music.Abstractions;
+using Music.Common;
 using Music.Kugou;
 using Music.Models;
 
@@ -315,7 +316,7 @@ public sealed class KugouProvider : IAuthenticatableProvider
         return new SongInfo
         {
             Id = song.Hash,
-            Name = song.Name,
+            Name = song.GetExtraString("OriSongName")!,
             Artists = string.IsNullOrEmpty(song.Singer) ? [] : [song.Singer],
             Album = song.AlbumName,
             AlbumCover = song.Cover?.Replace("{size}", "400") ?? "",

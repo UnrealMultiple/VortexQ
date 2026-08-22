@@ -23,7 +23,7 @@ internal class CollectionSerializer<T> : FieldSerializer<ICollection<T>>
 
         foreach (var item in value)
         {
-            elementSerializer.Write(bw, item);
+            elementSerializer.Write(bw, item!);
         }
     }
 }
