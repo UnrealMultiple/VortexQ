@@ -2,7 +2,7 @@
     <Import Project="..\template.targets" />
     <ItemGroup>
         <PackageReference Include="ICSharpCode.Decompiler" Version="10.1.1.8388" />
-        <PackageReference Include="SharpCompress" Version="0.50.0" />
+        <PackageReference Include="SharpCompress" Version="0.50.4" />
     </ItemGroup>
 	<PropertyGroup>
 		<PackNames>SharpCompress.dll;ICSharpCode.Decompiler.dll</PackNames>
