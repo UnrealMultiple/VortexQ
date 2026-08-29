@@ -3,7 +3,7 @@
   <ItemGroup>
     <PackageReference Include="Octokit" Version="14.0.0" />
     <PackageReference Include="Octokit.Webhooks" Version="4.0.4" />
-    <PackageReference Include="PuppeteerSharp" Version="25.3.4" />
+    <PackageReference Include="PuppeteerSharp" Version="25.8.0" />
   </ItemGroup>
 	
 	<PropertyGroup>
